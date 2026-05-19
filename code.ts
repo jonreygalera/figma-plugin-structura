@@ -96,6 +96,66 @@ function getSemanticSuggestion(r: number, g: number, b: number): string {
   return "error-500 / rose";
 }
 
+interface ThemePalette {
+  sectionBg: { r: number, g: number, b: number };
+  cardBg: { r: number, g: number, b: number };
+  cardBorder: { r: number, g: number, b: number };
+  accentColor: { r: number, g: number, b: number };
+  accentLight: { r: number, g: number, b: number };
+}
+
+function hslToRgb(h: number, s: number, l: number) {
+  h /= 360;
+  let r = l;
+  let g = l;
+  let b = l;
+  if (s !== 0) {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    const hue2rgb = (t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    r = hue2rgb(h + 1/3);
+    g = hue2rgb(h);
+    b = hue2rgb(h - 1/3);
+  }
+  return { r, g, b };
+}
+
+function deriveTheme(primaryBrandColor?: { r: number, g: number, b: number }): ThemePalette {
+  // Default dark theme (Slate 900 / Slate 800)
+  const defaultPalette: ThemePalette = {
+    sectionBg: { r: 15/255, g: 23/255, b: 42/255 },     // Slate 900
+    cardBg: { r: 30/255, g: 41/255, b: 59/255 },        // Slate 800
+    cardBorder: { r: 51/255, g: 65/255, b: 85/255 },    // Slate 700
+    accentColor: { r: 139/255, g: 92/255, b: 246/255 },  // Violet 500
+    accentLight: { r: 167/255, g: 139/255, b: 250/255 }  // Violet 400
+  };
+
+  if (!primaryBrandColor) return defaultPalette;
+
+  const { h, s, l } = rgbToHsl(primaryBrandColor.r, primaryBrandColor.g, primaryBrandColor.b);
+
+  // Set saturation to 0.12 for section background to keep it neutral but themed
+  const bgSat = 0.12;
+  const sectionBg = hslToRgb(h, bgSat, 0.05); // very dark themed gray
+  const cardBg = hslToRgb(h, bgSat, 0.10);    // slightly lighter themed gray
+  const cardBorder = hslToRgb(h, bgSat, 0.16); // borders
+
+  return {
+    sectionBg,
+    cardBg,
+    cardBorder,
+    accentColor: primaryBrandColor, // Use actual brand color as accent
+    accentLight: hslToRgb(h, Math.min(s + 0.1, 1), 0.70) // Lighter brand shade
+  };
+}
+
 // Find all text nodes recursively
 function findTextNodes(node: SceneNode, results: TextNode[]) {
   if (node.type === "TEXT") {
@@ -486,6 +546,17 @@ figma.ui.onmessage = async (msg) => {
       boldFont = await safeLoad({ family: "Inter", style: "Bold" }, defaultFont);
 
       // 8. Construct Design System Layout using pure Auto Layout
+      const brandColorsList = Object.entries(colors)
+        .filter(([hex, data]) => {
+          const { s, l } = rgbToHsl(data.r, data.g, data.b);
+          return s >= 0.15 && l >= 0.15 && l <= 0.85;
+        })
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 3); // Extract Top 3 brand colors (Primary, Secondary, Accent)
+
+      const primaryBrand = brandColorsList.length > 0 ? brandColorsList[0][1] : undefined;
+      const theme = deriveTheme(primaryBrand);
+
       const pageWrapper = figma.createFrame();
       pageWrapper.name = "Design System Container";
       pageWrapper.resize(1200, 100);
@@ -495,11 +566,11 @@ figma.ui.onmessage = async (msg) => {
       pageWrapper.fills = []; // Transparent frame
       pageWrapper.itemSpacing = 40;
 
-      // SECTION A: HEADER BANNER (Slate 900)
+      // SECTION A: HEADER BANNER (Slate 900 / Themed)
       const headerFrame = figma.createFrame();
       headerFrame.name = "Header Banner";
       headerFrame.resize(1200, 240);
-      headerFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+      headerFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
       headerFrame.cornerRadius = 16;
       headerFrame.layoutMode = "VERTICAL";
       headerFrame.primaryAxisSizingMode = "FIXED";
@@ -513,7 +584,7 @@ figma.ui.onmessage = async (msg) => {
       const brandLabel = figma.createText();
       brandLabel.fontName = boldFont;
       brandLabel.fontSize = 14;
-      brandLabel.fills = [{ type: "SOLID", color: { r: 139/255, g: 92/255, b: 246/255 } }]; // Violet 500
+      brandLabel.fills = [{ type: "SOLID", color: theme.accentLight }];
       brandLabel.characters = "STRUCTURA AUTOMATION";
       headerFrame.appendChild(brandLabel);
 
@@ -534,15 +605,7 @@ figma.ui.onmessage = async (msg) => {
 
       pageWrapper.appendChild(headerFrame);
 
-      // SECTION B1: BRANDING COLORS (Slate 900)
-      const brandColorsList = Object.entries(colors)
-        .filter(([hex, data]) => {
-          const { s, l } = rgbToHsl(data.r, data.g, data.b);
-          return s >= 0.15 && l >= 0.15 && l <= 0.85;
-        })
-        .sort((a, b) => b[1].count - a[1].count)
-        .slice(0, 3); // Extract Top 3 brand colors (Primary, Secondary, Accent)
-
+      // SECTION B1: BRANDING COLORS (Themed)
       if (brandColorsList.length > 0) {
         const brandFrame = figma.createFrame();
         brandFrame.name = "Branding Colors";
@@ -550,7 +613,7 @@ figma.ui.onmessage = async (msg) => {
         brandFrame.layoutMode = "VERTICAL";
         brandFrame.counterAxisSizingMode = "FIXED";
         brandFrame.primaryAxisSizingMode = "AUTO";
-        brandFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+        brandFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         brandFrame.cornerRadius = 16;
         brandFrame.paddingLeft = 40;
         brandFrame.paddingRight = 40;
@@ -582,9 +645,9 @@ figma.ui.onmessage = async (msg) => {
 
             card.name = `${roleName} - ${hex}`;
             card.resize(346, 220);
-            card.fills = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }]; // Slate 800
+            card.fills = [{ type: "SOLID", color: theme.cardBg }];
             card.cornerRadius = 12;
-            card.strokes = [{ type: "SOLID", color: { r: 51/255, g: 65/255, b: 85/255 } }]; // Slate 700
+            card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
             card.strokeWeight = 1;
             card.layoutMode = "VERTICAL";
             card.primaryAxisSizingMode = "FIXED";
@@ -623,7 +686,7 @@ figma.ui.onmessage = async (msg) => {
             const hexCode = figma.createText();
             hexCode.fontName = boldFont;
             hexCode.fontSize = 13;
-            hexCode.fills = [{ type: "SOLID", color: { r: 167/255, g: 139/255, b: 250/255 } }]; // Violet 400
+            hexCode.fills = [{ type: "SOLID", color: theme.accentLight }];
             hexCode.characters = hex;
             codeRow.appendChild(hexCode);
 
@@ -676,7 +739,7 @@ figma.ui.onmessage = async (msg) => {
         colorsFrame.layoutMode = "VERTICAL";
         colorsFrame.counterAxisSizingMode = "FIXED";
         colorsFrame.primaryAxisSizingMode = "AUTO";
-        colorsFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+        colorsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         colorsFrame.cornerRadius = 16;
         colorsFrame.paddingLeft = 40;
         colorsFrame.paddingRight = 40;
@@ -713,7 +776,7 @@ figma.ui.onmessage = async (msg) => {
           const chipFrame = figma.createFrame();
           chipFrame.name = `Color - ${hex}`;
           chipFrame.resize(chipW, chipH);
-          chipFrame.fills = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }]; // Slate 800
+          chipFrame.fills = [{ type: "SOLID", color: theme.cardBg }];
           chipFrame.cornerRadius = 12;
           chipFrame.layoutMode = "VERTICAL";
           chipFrame.primaryAxisSizingMode = "FIXED";
@@ -757,7 +820,7 @@ figma.ui.onmessage = async (msg) => {
           const suggestText = figma.createText();
           suggestText.fontName = boldFont;
           suggestText.fontSize = 10;
-          suggestText.fills = [{ type: "SOLID", color: { r: 167/255, g: 139/255, b: 250/255 } }]; // Violet 400
+          suggestText.fills = [{ type: "SOLID", color: theme.accentLight }];
           suggestText.characters = `$var: ${suggestion}`;
           chipFrame.appendChild(suggestText);
 
@@ -787,7 +850,7 @@ figma.ui.onmessage = async (msg) => {
         typoFrame.layoutMode = "VERTICAL";
         typoFrame.counterAxisSizingMode = "FIXED";
         typoFrame.primaryAxisSizingMode = "AUTO";
-        typoFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+        typoFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         typoFrame.cornerRadius = 16;
         typoFrame.paddingLeft = 40;
         typoFrame.paddingRight = 40;
@@ -831,7 +894,7 @@ figma.ui.onmessage = async (msg) => {
           const familyTitle = figma.createText();
           familyTitle.fontName = boldFont;
           familyTitle.fontSize = 16;
-          familyTitle.fills = [{ type: "SOLID", color: { r: 139/255, g: 92/255, b: 246/255 } }]; // Violet 500
+          familyTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
           familyTitle.characters = `${family.toUpperCase()} FAMILY`;
           typoFrame.appendChild(familyTitle);
 
@@ -897,7 +960,7 @@ figma.ui.onmessage = async (msg) => {
         compFrame.layoutMode = "VERTICAL";
         compFrame.counterAxisSizingMode = "FIXED";
         compFrame.primaryAxisSizingMode = "AUTO";
-        compFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+        compFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         compFrame.cornerRadius = 16;
         compFrame.paddingLeft = 40;
         compFrame.paddingRight = 40;
@@ -919,7 +982,7 @@ figma.ui.onmessage = async (msg) => {
           const subTitle = figma.createText();
           subTitle.fontName = boldFont;
           subTitle.fontSize = 16;
-          subTitle.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }]; // Slate 400
+          subTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
           subTitle.characters = title;
           compFrame.appendChild(subTitle);
 
@@ -936,9 +999,9 @@ figma.ui.onmessage = async (msg) => {
               // Wrapper card for the cloned element
               const card = figma.createFrame();
               card.name = `Container - ${item.name}`;
-              card.fills = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }]; // Slate 800
+              card.fills = [{ type: "SOLID", color: theme.cardBg }];
               card.cornerRadius = 12;
-              card.strokes = [{ type: "SOLID", color: { r: 51/255, g: 65/255, b: 85/255 } }]; // Slate 700
+              card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
               card.strokeWeight = 1;
               card.layoutMode = "VERTICAL";
               card.primaryAxisSizingMode = "AUTO";
@@ -995,7 +1058,7 @@ figma.ui.onmessage = async (msg) => {
         assetsFrame.layoutMode = "VERTICAL";
         assetsFrame.counterAxisSizingMode = "FIXED";
         assetsFrame.primaryAxisSizingMode = "AUTO";
-        assetsFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+        assetsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         assetsFrame.cornerRadius = 16;
         assetsFrame.paddingLeft = 40;
         assetsFrame.paddingRight = 40;
@@ -1015,7 +1078,7 @@ figma.ui.onmessage = async (msg) => {
           const iconSubTitle = figma.createText();
           iconSubTitle.fontName = boldFont;
           iconSubTitle.fontSize = 16;
-          iconSubTitle.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }]; // Slate 400
+          iconSubTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
           iconSubTitle.characters = "Icons";
           assetsFrame.appendChild(iconSubTitle);
 
@@ -1031,9 +1094,9 @@ figma.ui.onmessage = async (msg) => {
             try {
               const card = figma.createFrame();
               card.name = `Icon - ${item.name}`;
-              card.fills = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }]; // Slate 800
+              card.fills = [{ type: "SOLID", color: theme.cardBg }];
               card.cornerRadius = 12;
-              card.strokes = [{ type: "SOLID", color: { r: 51/255, g: 65/255, b: 85/255 } }]; // Slate 700
+              card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
               card.strokeWeight = 1;
               card.layoutMode = "VERTICAL";
               card.primaryAxisSizingMode = "AUTO";
@@ -1072,7 +1135,7 @@ figma.ui.onmessage = async (msg) => {
           const imgSubTitle = figma.createText();
           imgSubTitle.fontName = boldFont;
           imgSubTitle.fontSize = 16;
-          imgSubTitle.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }]; // Slate 400
+          imgSubTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
           imgSubTitle.characters = "Images & Media";
           assetsFrame.appendChild(imgSubTitle);
 
@@ -1088,9 +1151,9 @@ figma.ui.onmessage = async (msg) => {
             try {
               const card = figma.createFrame();
               card.name = `Image - ${item.name}`;
-              card.fills = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }]; // Slate 800
+              card.fills = [{ type: "SOLID", color: theme.cardBg }];
               card.cornerRadius = 12;
-              card.strokes = [{ type: "SOLID", color: { r: 51/255, g: 65/255, b: 85/255 } }]; // Slate 700
+              card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
               card.strokeWeight = 1;
               card.layoutMode = "VERTICAL";
               card.primaryAxisSizingMode = "AUTO";
@@ -1143,7 +1206,7 @@ figma.ui.onmessage = async (msg) => {
         shadowsFrame.layoutMode = "VERTICAL";
         shadowsFrame.counterAxisSizingMode = "FIXED";
         shadowsFrame.primaryAxisSizingMode = "AUTO";
-        shadowsFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+        shadowsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         shadowsFrame.cornerRadius = 16;
         shadowsFrame.paddingLeft = 40;
         shadowsFrame.paddingRight = 40;
@@ -1171,7 +1234,7 @@ figma.ui.onmessage = async (msg) => {
             const card = figma.createFrame();
             card.name = `Shadow Card - ${data.effect.radius}px`;
             card.resize(200, 200);
-            card.fills = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }]; // Slate 800
+            card.fills = [{ type: "SOLID", color: theme.cardBg }];
             card.cornerRadius = 12;
             
             // Apply effect
@@ -1225,7 +1288,7 @@ figma.ui.onmessage = async (msg) => {
         spacingFrame.layoutMode = "VERTICAL";
         spacingFrame.counterAxisSizingMode = "FIXED";
         spacingFrame.primaryAxisSizingMode = "AUTO";
-        spacingFrame.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }]; // Slate 900
+        spacingFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         spacingFrame.cornerRadius = 16;
         spacingFrame.paddingLeft = 40;
         spacingFrame.paddingRight = 40;
@@ -1273,7 +1336,7 @@ figma.ui.onmessage = async (msg) => {
             const bar = figma.createRectangle();
             bar.name = "Spacing Bar";
             bar.resize(Math.min(val * 4, 380), 12); // scaled x4 for clear visibility, capped at 380
-            bar.fills = [{ type: "SOLID", color: { r: 139/255, g: 92/255, b: 246/255 } }]; // Violet 500
+            bar.fills = [{ type: "SOLID", color: theme.accentColor }];
             bar.cornerRadius = 4;
             barContainer.appendChild(bar);
             row.appendChild(barContainer);
