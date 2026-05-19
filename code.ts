@@ -1318,7 +1318,7 @@ figma.ui.onmessage = async (msg) => {
             row.resize(1120, 40);
             row.layoutMode = "HORIZONTAL";
             row.primaryAxisSizingMode = "FIXED";
-            row.counterAxisSizingMode = "AUTO";
+            row.counterAxisSizingMode = "FIXED";
             row.fills = [];
             row.itemSpacing = 24;
             row.counterAxisAlignItems = "CENTER";
