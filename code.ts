@@ -410,14 +410,22 @@ figma.ui.onmessage = async (msg) => {
 
         // Check frame/group padding & spacing properties
         if (node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE") {
-          const paddings = [node.paddingLeft, node.paddingRight, node.paddingTop, node.paddingBottom];
-          paddings.forEach(p => {
-            if (p && p > 0 && p <= 128) {
-              spacingValues[p] = (spacingValues[p] || 0) + 1;
+          if (node.layoutMode !== "NONE") {
+            const paddings = [node.paddingLeft, node.paddingRight, node.paddingTop, node.paddingBottom];
+            paddings.forEach(p => {
+              if (typeof p === "number" && p > 0 && p <= 128) {
+                const rounded = Math.round(p);
+                if (rounded > 0) {
+                  spacingValues[rounded] = (spacingValues[rounded] || 0) + 1;
+                }
+              }
+            });
+            if (typeof node.itemSpacing === "number" && node.itemSpacing > 0 && node.itemSpacing <= 128) {
+              const rounded = Math.round(node.itemSpacing);
+              if (rounded > 0) {
+                spacingValues[rounded] = (spacingValues[rounded] || 0) + 1;
+              }
             }
-          });
-          if (node.itemSpacing && node.itemSpacing > 0 && node.itemSpacing <= 128) {
-            spacingValues[node.itemSpacing] = (spacingValues[node.itemSpacing] || 0) + 1;
           }
         }
 
@@ -1332,10 +1340,12 @@ figma.ui.onmessage = async (msg) => {
             barContainer.layoutMode = "HORIZONTAL";
             barContainer.primaryAxisSizingMode = "FIXED";
             barContainer.counterAxisSizingMode = "FIXED";
+            barContainer.counterAxisAlignItems = "CENTER";
 
             const bar = figma.createRectangle();
             bar.name = "Spacing Bar";
-            bar.resize(Math.min(val * 4, 380), 12); // scaled x4 for clear visibility, capped at 380
+            const barWidth = Math.max(val * 4, 1);
+            bar.resize(Math.min(barWidth, 380), 12); // scaled x4 for clear visibility, capped at 380
             bar.fills = [{ type: "SOLID", color: theme.accentColor }];
             bar.cornerRadius = 4;
             barContainer.appendChild(bar);
