@@ -151,7 +151,7 @@ function deriveTheme(primaryBrandColor?: { r: number, g: number, b: number }): T
     sectionBg,
     cardBg,
     cardBorder,
-    accentColor: primaryBrandColor, // Use actual brand color as accent
+    accentColor: { r: primaryBrandColor.r, g: primaryBrandColor.g, b: primaryBrandColor.b }, // Strip count/extra properties
     accentLight: hslToRgb(h, Math.min(s + 0.1, 1), 0.70) // Lighter brand shade
   };
 }
@@ -1328,19 +1328,17 @@ figma.ui.onmessage = async (msg) => {
             label.fontName = boldFont;
             label.fontSize = 13;
             label.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-            label.characters = `${val}px (${(val / 16).toFixed(3)}rem)`;
+             const remValue = val / 16;
+            const remStr = Number(remValue.toFixed(3)).toString(); // Strip trailing zeros (e.g. 0.5 instead of 0.500)
+            label.characters = `${val}px (${remStr}rem)`;
             label.resize(150, 20);
             row.appendChild(label);
 
-            // Visual bar container
+            // Visual bar container (non-layout frame to avoid layout engine bugs)
             const barContainer = figma.createFrame();
             barContainer.name = "Bar Container";
             barContainer.resize(400, 20);
             barContainer.fills = [];
-            barContainer.layoutMode = "HORIZONTAL";
-            barContainer.primaryAxisSizingMode = "FIXED";
-            barContainer.counterAxisSizingMode = "FIXED";
-            barContainer.counterAxisAlignItems = "CENTER";
 
             const bar = figma.createRectangle();
             bar.name = "Spacing Bar";
@@ -1348,6 +1346,11 @@ figma.ui.onmessage = async (msg) => {
             bar.resize(Math.min(barWidth, 380), 12); // scaled x4 for clear visibility, capped at 380
             bar.fills = [{ type: "SOLID", color: theme.accentColor }];
             bar.cornerRadius = 4;
+            
+            // Manually position bar inside the transparent container
+            bar.x = 0;
+            bar.y = (20 - 12) / 2; // = 4px (vertically centered)
+            
             barContainer.appendChild(bar);
             row.appendChild(barContainer);
 
@@ -1360,7 +1363,7 @@ figma.ui.onmessage = async (msg) => {
             row.appendChild(details);
 
             spacingFrame.appendChild(row);
-          } catch (e) {
+          } catch (e: any) {
             console.error("Error creating spacing row:", e);
           }
         });
