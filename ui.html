@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Structura - Design System Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0b0f17;
+      color: #f3f4f6;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 20px;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Screen Styles */
+    .screen {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex-grow: 1;
+      animation: fadeIn 0.3s ease-out forwards;
+      width: 100%;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .logo-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 15px;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 30%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+      max-width: 240px;
+      line-height: 1.4;
+    }
+
+    /* Card Area */
+    .hero-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      width: 100%;
+      margin-bottom: 16px;
+      backdrop-filter: blur(12px);
+    }
+
+    .hero-text {
+      font-size: 12px;
+      color: #d1d5db;
+      line-height: 1.5;
+    }
+
+    /* Form Fields for dropdown */
+    .form-group {
+      width: 100%;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #9ca3af;
+      letter-spacing: 0.5px;
+      text-align: left;
+    }
+
+    .select-dropdown {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      color: #f3f4f6;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .select-dropdown:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .select-dropdown:focus {
+      border-color: #6366f1;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    }
+
+    .select-dropdown option {
+      background-color: #0b0f17;
+      color: #f3f4f6;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 8px;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e5e7eb;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Loader / Scanning State */
+    .spinner-container {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin-bottom: 24px;
+    }
+
+    .spinner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.03);
+      border-top-color: #6366f1;
+      border-right-color: #a855f7;
+      animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e5e7eb;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .status-sub {
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    /* Dashboard / Stats State */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: border-color 0.2s ease;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .stat-val {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .success-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .success-badge svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    
+    <!-- Screen 1: Welcome/Ready -->
+    <div id="screen-ready" class="screen active">
+      <div class="header">
+        <div class="logo-container">
+          <div class="logo-icon">S</div>
+          <span class="logo-text">Structura</span>
+        </div>
+        <p class="subtitle">Convert messy designs into a structured design system automatically</p>
+      </div>
+
+      <div class="hero-card">
+        <p class="hero-text">
+          Structura scans color & typography tokens, analyzes layer architecture to detect components, and outputs a clean design system page.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label for="page-select" class="field-label">Source Page to Scan</label>
+        <select id="page-select" class="select-dropdown">
+        </select>
+      </div>
+
+      <button id="btn-generate" class="btn btn-primary">
+        Generate Design System
+      </button>
+    </div>
+
+    <!-- Screen 2: Scanning -->
+    <div id="screen-scanning" class="screen">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+      </div>
+      <p id="scanning-status" class="status-text">Scanning canvas...</p>
+      <p id="scanning-step" class="status-sub">Please wait</p>
+    </div>
+
+    <!-- Screen 3: Complete -->
+    <div id="screen-complete" class="screen">
+      <div class="success-badge">
+        <svg viewBox="0 0 20 20">
+          <path d="M10 0a10 10 0 1010 10A10.011 10.011 0 0010 0zm4.757 7.757l-6 6a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L8 11.586l5.343-5.343a1 1 0 111.414 1.414z"/>
+        </svg>
+        Design System Generated!
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span id="stat-colors" class="stat-val">0</span>
+          <span class="stat-lbl">Colors</span>
+        </div>
+        <div class="stat-card">
+          <span id="stat-fonts" class="stat-val">0</span>
+          <span class="stat-lbl">Typography</span>
+        </div>
+        <div class="stat-card">
+          <span id="stat-components" class="stat-val">0</span>
+          <span class="stat-lbl">Components</span>
+        </div>
+        <div class="stat-card">
+          <span id="stat-assets" class="stat-val">0</span>
+          <span class="stat-lbl">Assets</span>
+        </div>
+        <div class="stat-card">
+          <span id="stat-tokens" class="stat-val">0</span>
+          <span class="stat-lbl">Shadows & Gaps</span>
+        </div>
+        <div class="stat-card">
+          <span id="stat-layers" class="stat-val">0</span>
+          <span class="stat-lbl">Layers Scanned</span>
+        </div>
+      </div>
+
+      <button id="btn-new-scan" class="btn btn-primary" style="margin-bottom: 8px;">
+        Scan New Page
+      </button>
+      <button id="btn-restart" class="btn btn-secondary">
+        Scan & Rebuild Page
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    const screenReady = document.getElementById('screen-ready');
+    const screenScanning = document.getElementById('screen-scanning');
+    const screenComplete = document.getElementById('screen-complete');
+    
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnNewScan = document.getElementById('btn-new-scan');
+    const pageSelect = document.getElementById('page-select');
+    
+    const scanningStatus = document.getElementById('scanning-status');
+    const scanningStep = document.getElementById('scanning-step');
+    
+    const statColors = document.getElementById('stat-colors');
+    const statFonts = document.getElementById('stat-fonts');
+    const statComponents = document.getElementById('stat-components');
+    const statLayers = document.getElementById('stat-layers');
+    const statAssets = document.getElementById('stat-assets');
+    const statTokens = document.getElementById('stat-tokens');
+
+    function showScreen(screen) {
+      screenReady.classList.remove('active');
+      screenScanning.classList.remove('active');
+      screenComplete.classList.remove('active');
+      screen.classList.add('active');
+
+      let height = 420;
+      if (screen === screenScanning) height = 240;
+      if (screen === screenComplete) height = 540;
+      parent.postMessage({ pluginMessage: { type: "resize", width: 340, height } }, "*");
+    }
+
+    btnGenerate.onclick = () => {
+      const targetPageId = pageSelect.value;
+      showScreen(screenScanning);
+      parent.postMessage({ pluginMessage: { type: "generate", targetPageId } }, "*");
+    };
+
+    btnRestart.onclick = () => {
+      const targetPageId = pageSelect.value;
+      showScreen(screenScanning);
+      parent.postMessage({ pluginMessage: { type: "generate", targetPageId } }, "*");
+    };
+
+    btnNewScan.onclick = () => {
+      showScreen(screenReady);
+    };
+
+    // Notify plugin code that the UI is fully loaded and ready to receive pages
+    window.onload = () => {
+      parent.postMessage({ pluginMessage: { type: "ready" } }, "*");
+    };
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === "init-pages") {
+        // Populate dropdown with pages
+        pageSelect.innerHTML = '';
+        msg.pages.forEach(p => {
+          const option = document.createElement('option');
+          option.value = p.id;
+          option.textContent = p.name;
+          pageSelect.appendChild(option);
+        });
+      } else if (msg.type === "scan-progress") {
+        scanningStatus.textContent = msg.status;
+        scanningStep.textContent = msg.step;
+      } else if (msg.type === "scan-complete") {
+        statColors.textContent = msg.stats.colors;
+        statFonts.textContent = msg.stats.fonts;
+        statComponents.textContent = msg.stats.components;
+        statAssets.textContent = msg.stats.assets;
+        statTokens.textContent = msg.stats.tokens;
+        statLayers.textContent = msg.stats.layers;
+        showScreen(screenComplete);
+      }
+    };
+  </script>
+</body>
+</html>
