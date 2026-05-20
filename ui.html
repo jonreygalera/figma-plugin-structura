@@ -322,6 +322,45 @@
       text-transform: uppercase;
       opacity: 0.7;
     }
+
+    .tips-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 12px;
+      width: 100%;
+      margin-bottom: 16px;
+      text-align: left;
+      backdrop-filter: blur(12px);
+    }
+
+    .tips-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #a855f7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .tips-list {
+      font-size: 10px;
+      color: #9ca3af;
+      padding-left: 14px;
+      line-height: 1.4;
+    }
+
+    .tips-list li {
+      margin-bottom: 6px;
+    }
+
+    .tips-list code {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: #f3f4f6;
+      font-family: monospace;
+    }
   </style>
 </head>
 
@@ -402,6 +441,11 @@
           <span id="stat-layers" class="stat-val">0</span>
           <span class="stat-lbl">Layers Scanned</span>
         </div>
+      </div>
+
+      <div id="tips-container" class="tips-box" style="display: none;">
+        <div class="tips-title">Scanning Recommendations</div>
+        <ul id="tips-list" class="tips-list"></ul>
       </div>
 
       <button id="btn-new-scan" class="btn btn-primary" style="margin-bottom: 8px;">
@@ -495,7 +539,45 @@
         statAssets.textContent = msg.stats.assets;
         statTokens.textContent = msg.stats.tokens;
         statLayers.textContent = msg.stats.layers;
+        
         showScreen(screenComplete);
+
+        const tipsContainer = document.getElementById('tips-container');
+        const tipsList = document.getElementById('tips-list');
+        tipsList.innerHTML = '';
+        let hasMissing = false;
+
+        if (msg.stats.logos === 0) {
+          hasMissing = true;
+          const li = document.createElement('li');
+          li.innerHTML = '<strong>Logos missing:</strong> Rename component/frame/vector layers to contain <code>logo</code>, <code>brand</code>, <code>logomark</code>, <code>logotype</code>, or <code>brandmark</code>.';
+          tipsList.appendChild(li);
+        }
+        if (msg.stats.components === 0) {
+          hasMissing = true;
+          const li = document.createElement('li');
+          li.innerHTML = '<strong>Components missing:</strong> Structure frames with text as buttons, inputs, or card layout patterns.';
+          tipsList.appendChild(li);
+        }
+        if (msg.stats.assets === 0) {
+          hasMissing = true;
+          const li = document.createElement('li');
+          li.innerHTML = '<strong>Assets missing:</strong> Keep icon frames/vectors sized 12-48px square named with <code>icon</code> or <code>svg</code>.';
+          tipsList.appendChild(li);
+        }
+        if (msg.stats.tokens === 0) {
+          hasMissing = true;
+          const li = document.createElement('li');
+          li.innerHTML = '<strong>Tokens missing:</strong> Apply Drop/Inner Shadow effects or use Auto Layout padding & spacing on frames.';
+          tipsList.appendChild(li);
+        }
+
+        if (hasMissing) {
+          tipsContainer.style.display = 'block';
+          parent.postMessage({ pluginMessage: { type: "resize", width: 340, height: 740 } }, "*");
+        } else {
+          tipsContainer.style.display = 'none';
+        }
       }
     };
   </script>

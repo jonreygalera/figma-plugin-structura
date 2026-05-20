@@ -1464,6 +1464,79 @@ figma.ui.onmessage = async (msg) => {
         pageWrapper.appendChild(spacingFrame);
       }
 
+      // SECTION H: OPTIMIZATION GUIDELINES (if stats are missing)
+      const missingItems: string[] = [];
+      if (representativeLogos.length === 0) {
+        missingItems.push("• LOGOS: To detect logos, name layers to contain 'logo', 'brand', 'logomark', 'logotype', or 'brandmark'.");
+      }
+      if (brandColorsList.length === 0) {
+        missingItems.push("• BRANDING COLORS: Brand colors are determined from saturated colors used frequently. Apply solid color fills to layers.");
+      }
+      if (sortedColors.length === 0) {
+        missingItems.push("• COLOR PALETTE: No solid fills or strokes were detected. Ensure your layouts use solid colors.");
+      }
+      if (sortedTypo.length === 0) {
+        missingItems.push("• TYPOGRAPHY: No text layers detected. Add text elements to define your typography scale.");
+      }
+      if (!hasComponents) {
+        missingItems.push("• COMPONENTS: No buttons, inputs, or cards matched. Heuristics:\n  - Buttons: 60-320px wide, 24-64px high, containing 1-2 text layers.\n  - Inputs: 120-500px wide, 32-60px high, containing a stroke/fill and text layer.\n  - Cards: 180-500px wide, 120-600px high, containing >= 2 text layers and >= 1 visual element.");
+      }
+      if (!hasAssets) {
+        missingItems.push("• ASSETS (ICONS & IMAGES): No icons or images matched. Icons must be 12-48px square layers with 'icon' or 'svg' in their name.");
+      }
+      if (sortedShadows.length === 0) {
+        missingItems.push("• ELEVATION & SHADOWS: Apply Drop Shadow or Inner Shadow effects on layers to extract elevation tokens.");
+      }
+      if (sortedSpacing.length === 0) {
+        missingItems.push("• SPACING TOKENS: Use Auto Layout padding and item gaps (1px to 128px) on your frames.");
+      }
+
+      if (missingItems.length > 0) {
+        try {
+          const guideFrame = figma.createFrame();
+          guideFrame.name = "Optimization Guidelines";
+          guideFrame.resize(1200, 100);
+          guideFrame.layoutMode = "VERTICAL";
+          guideFrame.counterAxisSizingMode = "AUTO";
+          guideFrame.primaryAxisSizingMode = "AUTO";
+          guideFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
+          guideFrame.cornerRadius = 16;
+          guideFrame.paddingLeft = 40;
+          guideFrame.paddingRight = 40;
+          guideFrame.paddingTop = 40;
+          guideFrame.paddingBottom = 40;
+          guideFrame.itemSpacing = 20;
+
+          const gHeader = figma.createText();
+          gHeader.fontName = boldFont;
+          gHeader.fontSize = 24;
+          gHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+          gHeader.characters = "How to Improve Detection";
+          guideFrame.appendChild(gHeader);
+
+          const gSub = figma.createText();
+          gSub.fontName = defaultFont;
+          gSub.fontSize = 13;
+          gSub.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
+          gSub.characters = "Structura uses automated heuristics to build this design system. Some layers didn't match the criteria. Follow these rules to enable detection on your next scan:";
+          guideFrame.appendChild(gSub);
+
+          for (const itemText of missingItems) {
+            const item = figma.createText();
+            item.fontName = defaultFont;
+            item.fontSize = 13;
+            item.fills = [{ type: "SOLID", color: { r: 243/255, g: 244/255, b: 246/255 } }];
+            item.characters = itemText;
+            item.layoutGrow = 1;
+            guideFrame.appendChild(item);
+          }
+
+          pageWrapper.appendChild(guideFrame);
+        } catch (e) {
+          console.error("Error creating guidelines frame:", e);
+        }
+      }
+
       // Append wrapper to Design System Page
       dsPage.appendChild(pageWrapper);
 
