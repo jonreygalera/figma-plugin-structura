@@ -229,6 +229,7 @@ figma.ui.onmessage = async (msg) => {
       const detectedCards: SceneNode[] = [];
       const representativeImages: SceneNode[] = [];
       const representativeIcons: SceneNode[] = [];
+      const representativeLogos: SceneNode[] = [];
       const shadows: { [key: string]: { effect: DropShadowEffect | InnerShadowEffect; count: number } } = {};
       const spacingValues: { [val: number]: number } = {};
 
@@ -309,6 +310,24 @@ figma.ui.onmessage = async (msg) => {
           }
         }
 
+        // Logo detection
+        const lowerName = node.name.toLowerCase();
+        const isLikelyLogo = lowerName.includes("logo") || lowerName.includes("brandmark") || lowerName.includes("logomark") || lowerName.includes("logotype") || lowerName.includes("branding");
+        if (isLikelyLogo) {
+          if (
+            node.type === "FRAME" ||
+            node.type === "GROUP" ||
+            node.type === "COMPONENT" ||
+            node.type === "INSTANCE" ||
+            node.type === "VECTOR" ||
+            node.type === "BOOLEAN_OPERATION"
+          ) {
+            if (representativeLogos.length < 6 && !representativeLogos.some(logo => logo.name === node.name)) {
+              representativeLogos.push(node);
+            }
+          }
+        }
+
         // Icon check
         if (!isImage) {
           const isVector = node.type === "VECTOR" || node.type === "BOOLEAN_OPERATION" || node.type === "STAR" || node.type === "LINE" || node.type === "ELLIPSE" || node.type === "POLYGON";
@@ -318,8 +337,7 @@ figma.ui.onmessage = async (msg) => {
                                   Math.abs(node.width - node.height) <= 6;
           
           if (isVector || isIconContainer) {
-            const lowerName = node.name.toLowerCase();
-            const isLikelyIcon = lowerName.includes("icon") || lowerName.includes("ic_") || lowerName.includes("svg") || lowerName.includes("logo") || isVector;
+            const isLikelyIcon = (lowerName.includes("icon") || lowerName.includes("ic_") || lowerName.includes("svg") || isVector) && !isLikelyLogo;
             
             if (isLikelyIcon) {
               if (representativeIcons.length < 12 && !representativeIcons.some(ic => ic.name === node.name)) {
@@ -615,6 +633,78 @@ figma.ui.onmessage = async (msg) => {
       headerFrame.appendChild(descText);
 
       pageWrapper.appendChild(headerFrame);
+
+      // SECTION A1: LOGOS & BRANDING
+      if (representativeLogos.length > 0) {
+        const logoFrame = figma.createFrame();
+        logoFrame.name = "Logos & Branding";
+        logoFrame.resize(1200, 100);
+        logoFrame.layoutMode = "VERTICAL";
+        logoFrame.counterAxisSizingMode = "AUTO";
+        logoFrame.primaryAxisSizingMode = "AUTO";
+        logoFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
+        logoFrame.cornerRadius = 16;
+        logoFrame.paddingLeft = 40;
+        logoFrame.paddingRight = 40;
+        logoFrame.paddingTop = 40;
+        logoFrame.paddingBottom = 40;
+        logoFrame.itemSpacing = 24;
+
+        const lHeader = figma.createText();
+        lHeader.fontName = boldFont;
+        lHeader.fontSize = 24;
+        lHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+        lHeader.characters = "Logos & Branding";
+        logoFrame.appendChild(lHeader);
+
+        const logoRow = figma.createFrame();
+        logoRow.name = "Logos Row";
+        logoRow.layoutMode = "HORIZONTAL";
+        logoRow.primaryAxisSizingMode = "AUTO";
+        logoRow.counterAxisSizingMode = "AUTO";
+        logoRow.itemSpacing = 24;
+        logoRow.fills = [];
+
+        for (const item of representativeLogos) {
+          try {
+            const card = figma.createFrame();
+            card.name = `Logo - ${item.name}`;
+            card.fills = [{ type: "SOLID", color: theme.cardBg }];
+            card.cornerRadius = 12;
+            card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
+            card.strokeWeight = 1;
+            card.layoutMode = "VERTICAL";
+            card.primaryAxisSizingMode = "AUTO";
+            card.counterAxisSizingMode = "AUTO";
+            card.paddingLeft = 20;
+            card.paddingRight = 20;
+            card.paddingTop = 20;
+            card.paddingBottom = 20;
+            card.itemSpacing = 16;
+            card.counterAxisAlignItems = "CENTER";
+
+            // Title Label of wrapper
+            const label = figma.createText();
+            label.fontName = mediumFont;
+            label.fontSize = 11;
+            label.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
+            label.characters = `${item.name.substring(0, 20)} (${item.width.toFixed(0)}x${item.height.toFixed(0)})`;
+            card.appendChild(label);
+
+            // Clone and reset positions
+            const clone = item.clone();
+            clone.x = 0;
+            clone.y = 0;
+            card.appendChild(clone);
+
+            logoRow.appendChild(card);
+          } catch (e) {
+            console.error("Error cloning logo:", e);
+          }
+        }
+        logoFrame.appendChild(logoRow);
+        pageWrapper.appendChild(logoFrame);
+      }
 
       // SECTION B1: BRANDING COLORS (Themed)
       if (brandColorsList.length > 0) {
@@ -1379,13 +1469,14 @@ figma.ui.onmessage = async (msg) => {
 
        // 9. Inform UI that scan is complete and send stats
       const totalComponentsCount = representativeButtons.length + representativeInputs.length + representativeCards.length;
-      figma.ui.resize(340, 540); // Auto adjust plugin height directly from code.ts
+      figma.ui.resize(340, 600); // Auto adjust plugin height directly from code.ts
       figma.ui.postMessage({
         type: "scan-complete",
         stats: {
           colors: sortedColors.length,
           fonts: sortedTypo.length,
           components: totalComponentsCount,
+          logos: representativeLogos.length,
           assets: representativeImages.length + representativeIcons.length,
           tokens: sortedShadows.length + sortedSpacing.length,
           layers: layersScanned

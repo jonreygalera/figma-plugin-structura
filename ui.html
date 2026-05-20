@@ -387,6 +387,10 @@
           <span class="stat-lbl">Components</span>
         </div>
         <div class="stat-card">
+          <span id="stat-logos" class="stat-val">0</span>
+          <span class="stat-lbl">Logos</span>
+        </div>
+        <div class="stat-card">
           <span id="stat-assets" class="stat-val">0</span>
           <span class="stat-lbl">Assets</span>
         </div>
@@ -429,6 +433,7 @@
     const statColors = document.getElementById('stat-colors');
     const statFonts = document.getElementById('stat-fonts');
     const statComponents = document.getElementById('stat-components');
+    const statLogos = document.getElementById('stat-logos');
     const statLayers = document.getElementById('stat-layers');
     const statAssets = document.getElementById('stat-assets');
     const statTokens = document.getElementById('stat-tokens');
@@ -441,7 +446,7 @@
 
       let height = 420;
       if (screen === screenScanning) height = 240;
-      if (screen === screenComplete) height = 540;
+      if (screen === screenComplete) height = 600;
       parent.postMessage({ pluginMessage: { type: "resize", width: 340, height } }, "*");
     }
 
@@ -486,6 +491,7 @@
         statColors.textContent = msg.stats.colors;
         statFonts.textContent = msg.stats.fonts;
         statComponents.textContent = msg.stats.components;
+        statLogos.textContent = msg.stats.logos;
         statAssets.textContent = msg.stats.assets;
         statTokens.textContent = msg.stats.tokens;
         statLayers.textContent = msg.stats.layers;
