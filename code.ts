@@ -512,10 +512,13 @@ figma.ui.onmessage = async (msg) => {
       });
 
       // 6. Ensure the design system page exists and is selected
-      let dsPage = figma.root.children.find(p => p.name === "Structura – Design System");
+      let scannedPageName = pagesToScan.length === 1 ? pagesToScan[0].name : "All Pages";
+      const generatedPageName = `Structura - Design System [${scannedPageName}]`;
+      
+      let dsPage = figma.root.children.find(p => p.name === generatedPageName);
       if (!dsPage) {
         dsPage = figma.createPage();
-        dsPage.name = "Structura – Design System";
+        dsPage.name = generatedPageName;
       } else {
         // Safe clear (using copy to prevent array mutation issues)
         await dsPage.loadAsync(); // Load the existing design system page before accessing children
