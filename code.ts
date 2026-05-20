@@ -572,7 +572,7 @@ figma.ui.onmessage = async (msg) => {
       pageWrapper.name = "Design System Container";
       pageWrapper.resize(1200, 100);
       pageWrapper.layoutMode = "VERTICAL";
-      pageWrapper.counterAxisSizingMode = "FIXED";
+      pageWrapper.counterAxisSizingMode = "AUTO";
       pageWrapper.primaryAxisSizingMode = "AUTO";
       pageWrapper.fills = []; // Transparent frame
       pageWrapper.itemSpacing = 40;
@@ -584,8 +584,8 @@ figma.ui.onmessage = async (msg) => {
       headerFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
       headerFrame.cornerRadius = 16;
       headerFrame.layoutMode = "VERTICAL";
-      headerFrame.primaryAxisSizingMode = "FIXED";
-      headerFrame.counterAxisSizingMode = "FIXED";
+      headerFrame.primaryAxisSizingMode = "AUTO";
+      headerFrame.counterAxisSizingMode = "AUTO";
       headerFrame.paddingLeft = 48;
       headerFrame.paddingRight = 48;
       headerFrame.paddingTop = 48;
@@ -622,7 +622,7 @@ figma.ui.onmessage = async (msg) => {
         brandFrame.name = "Branding Colors";
         brandFrame.resize(1200, 100);
         brandFrame.layoutMode = "VERTICAL";
-        brandFrame.counterAxisSizingMode = "FIXED";
+        brandFrame.counterAxisSizingMode = "AUTO";
         brandFrame.primaryAxisSizingMode = "AUTO";
         brandFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         brandFrame.cornerRadius = 16;
@@ -748,7 +748,7 @@ figma.ui.onmessage = async (msg) => {
         colorsFrame.name = "Color Palette";
         colorsFrame.resize(1200, 100);
         colorsFrame.layoutMode = "VERTICAL";
-        colorsFrame.counterAxisSizingMode = "FIXED";
+        colorsFrame.counterAxisSizingMode = "AUTO";
         colorsFrame.primaryAxisSizingMode = "AUTO";
         colorsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         colorsFrame.cornerRadius = 16;
@@ -859,7 +859,7 @@ figma.ui.onmessage = async (msg) => {
         typoFrame.name = "Typography Scale";
         typoFrame.resize(1200, 100);
         typoFrame.layoutMode = "VERTICAL";
-        typoFrame.counterAxisSizingMode = "FIXED";
+        typoFrame.counterAxisSizingMode = "AUTO";
         typoFrame.primaryAxisSizingMode = "AUTO";
         typoFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         typoFrame.cornerRadius = 16;
@@ -914,7 +914,7 @@ figma.ui.onmessage = async (msg) => {
             row.name = `Typo - ${data.family} ${data.style} ${data.size}px`;
             row.resize(1120, 60);
             row.layoutMode = "HORIZONTAL";
-            row.primaryAxisSizingMode = "FIXED";
+            row.primaryAxisSizingMode = "AUTO";
             row.counterAxisSizingMode = "AUTO";
             row.fills = [];
             row.itemSpacing = 40;
@@ -969,7 +969,7 @@ figma.ui.onmessage = async (msg) => {
         compFrame.name = "Components Library";
         compFrame.resize(1200, 100);
         compFrame.layoutMode = "VERTICAL";
-        compFrame.counterAxisSizingMode = "FIXED";
+        compFrame.counterAxisSizingMode = "AUTO";
         compFrame.primaryAxisSizingMode = "AUTO";
         compFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         compFrame.cornerRadius = 16;
@@ -1067,7 +1067,7 @@ figma.ui.onmessage = async (msg) => {
         assetsFrame.name = "Assets Library";
         assetsFrame.resize(1200, 100);
         assetsFrame.layoutMode = "VERTICAL";
-        assetsFrame.counterAxisSizingMode = "FIXED";
+        assetsFrame.counterAxisSizingMode = "AUTO";
         assetsFrame.primaryAxisSizingMode = "AUTO";
         assetsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         assetsFrame.cornerRadius = 16;
@@ -1215,7 +1215,7 @@ figma.ui.onmessage = async (msg) => {
         shadowsFrame.name = "Elevation & Shadows";
         shadowsFrame.resize(1200, 100);
         shadowsFrame.layoutMode = "VERTICAL";
-        shadowsFrame.counterAxisSizingMode = "FIXED";
+        shadowsFrame.counterAxisSizingMode = "AUTO";
         shadowsFrame.primaryAxisSizingMode = "AUTO";
         shadowsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         shadowsFrame.cornerRadius = 16;
@@ -1297,7 +1297,7 @@ figma.ui.onmessage = async (msg) => {
         spacingFrame.name = "Spacing Tokens";
         spacingFrame.resize(1200, 100);
         spacingFrame.layoutMode = "VERTICAL";
-        spacingFrame.counterAxisSizingMode = "FIXED";
+        spacingFrame.counterAxisSizingMode = "AUTO";
         spacingFrame.primaryAxisSizingMode = "AUTO";
         spacingFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
         spacingFrame.cornerRadius = 16;
@@ -1320,8 +1320,8 @@ figma.ui.onmessage = async (msg) => {
             row.name = `Spacing - ${val}px`;
             row.resize(1120, 40);
             row.layoutMode = "HORIZONTAL";
-            row.primaryAxisSizingMode = "FIXED";
-            row.counterAxisSizingMode = "FIXED";
+            row.primaryAxisSizingMode = "AUTO";
+            row.counterAxisSizingMode = "AUTO";
             row.fills = [];
             row.itemSpacing = 24;
             row.counterAxisAlignItems = "CENTER";
