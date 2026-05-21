@@ -312,7 +312,7 @@ figma.ui.onmessage = async (msg) => {
 
         // Logo detection
         const lowerName = node.name.toLowerCase();
-        const isLikelyLogo = lowerName.includes("logo") || lowerName.includes("brandmark") || lowerName.includes("logomark") || lowerName.includes("logotype") || lowerName.includes("branding");
+        const isLikelyLogo = /(?:logo|brandmark|logomark|logotype|branding|brand)(?:[-_\s\d]|$)/i.test(node.name);
         if (isLikelyLogo) {
           if (
             node.type === "FRAME" ||
@@ -322,7 +322,7 @@ figma.ui.onmessage = async (msg) => {
             node.type === "VECTOR" ||
             node.type === "BOOLEAN_OPERATION"
           ) {
-            if (representativeLogos.length < 6 && !representativeLogos.some(logo => logo.name === node.name)) {
+            if (representativeLogos.length < 1) {
               representativeLogos.push(node);
             }
           }
