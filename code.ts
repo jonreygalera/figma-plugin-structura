@@ -220,6 +220,8 @@ figma.ui.onmessage = async (msg) => {
       let paintStylesCreated = 0;
       let textStylesCreated = 0;
 
+      const createdNames = new Set<string>();
+
       // 1. Create Variables if API exists
       if (typeof figma.variables !== 'undefined') {
         const collections = await figma.variables.getLocalVariableCollectionsAsync();
@@ -234,6 +236,10 @@ figma.ui.onmessage = async (msg) => {
         lastScannedColors.forEach(c => {
           const cleanName = c.suggestion.replace(/\s*\/\s*/g, '/');
           const varPath = `Colors/${cleanName}`;
+          
+          if (createdNames.has(varPath)) return;
+          createdNames.add(varPath);
+
           let variable = existingVars.find(v => v.name === varPath);
           if (!variable) {
             variable = figma.variables.createVariable(varPath, collection, "COLOR");
@@ -244,6 +250,10 @@ figma.ui.onmessage = async (msg) => {
 
         lastScannedSpacing.forEach(s => {
           const varPath = `Spacing/space-${s.val}`;
+          
+          if (createdNames.has(varPath)) return;
+          createdNames.add(varPath);
+
           let variable = existingVars.find(v => v.name === varPath);
           if (!variable) {
             variable = figma.variables.createVariable(varPath, collection, "FLOAT");
@@ -255,9 +265,15 @@ figma.ui.onmessage = async (msg) => {
 
       // 2. Create Paint Styles
       const existingPaintStyles = await figma.getLocalPaintStylesAsync();
+      const createdStyles = new Set<string>();
+      
       lastScannedColors.forEach(c => {
         const cleanName = c.suggestion.replace(/\s*\/\s*/g, '/');
         const stylePath = `Colors/${cleanName}`;
+        
+        if (createdStyles.has(stylePath)) return;
+        createdStyles.add(stylePath);
+
         let style = existingPaintStyles.find(s => s.name === stylePath);
         if (!style) {
           style = figma.createPaintStyle();
@@ -269,11 +285,17 @@ figma.ui.onmessage = async (msg) => {
 
       // 3. Create Text Styles
       const existingTextStyles = await figma.getLocalTextStylesAsync();
+      const createdTextStyles = new Set<string>();
+
       for (const t of lastScannedTypo) {
         const fontName = { family: t.family, style: t.style };
         try {
           await figma.loadFontAsync(fontName);
           const stylePath = `Typography/${t.family}/${t.style}-${t.size}px`;
+          
+          if (createdTextStyles.has(stylePath)) continue;
+          createdTextStyles.add(stylePath);
+
           let style = existingTextStyles.find(s => s.name === stylePath);
           if (!style) {
             style = figma.createTextStyle();
