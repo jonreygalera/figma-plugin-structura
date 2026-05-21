@@ -1,5 +1,10 @@
 figma.showUI(__html__, { width: 340, height: 420 });
 
+// Global caches for scanned tokens
+let lastScannedColors: Array<{ hex: string; r: number; g: number; b: number; count: number; suggestion: string }> = [];
+let lastScannedTypo: Array<{ family: string; style: string; size: number; count: number }> = [];
+let lastScannedSpacing: Array<{ val: number; count: number }> = [];
+
 // Helper to convert RGB color to HEX string
 function rgbToHex(r: number, g: number, b: number): string {
   const toHex = (c: number) => {
@@ -206,6 +211,99 @@ figma.ui.onmessage = async (msg) => {
 
   if (msg.type === "resize") {
     figma.ui.resize(msg.width, msg.height);
+    return;
+  }
+
+  if (msg.type === "create-figma-tokens") {
+    try {
+      let variablesCreated = 0;
+      let paintStylesCreated = 0;
+      let textStylesCreated = 0;
+
+      // 1. Create Variables if API exists
+      if (typeof figma.variables !== 'undefined') {
+        const collections = await figma.variables.getLocalVariableCollectionsAsync();
+        let collection = collections.find(c => c.name === "Structura Variables");
+        if (!collection) {
+          collection = figma.variables.createVariableCollection("Structura Variables");
+        }
+
+        const allVars = await figma.variables.getLocalVariablesAsync();
+        const existingVars = allVars.filter(v => v.variableCollectionId === collection.id);
+        
+        lastScannedColors.forEach(c => {
+          const cleanName = c.suggestion.replace(/\s*\/\s*/g, '/');
+          const varPath = `Colors/${cleanName}`;
+          let variable = existingVars.find(v => v.name === varPath);
+          if (!variable) {
+            variable = figma.variables.createVariable(varPath, collection, "COLOR");
+            variablesCreated++;
+          }
+          variable.setValueForMode(collection.defaultModeId, { r: c.r, g: c.g, b: c.b });
+        });
+
+        lastScannedSpacing.forEach(s => {
+          const varPath = `Spacing/space-${s.val}`;
+          let variable = existingVars.find(v => v.name === varPath);
+          if (!variable) {
+            variable = figma.variables.createVariable(varPath, collection, "FLOAT");
+            variablesCreated++;
+          }
+          variable.setValueForMode(collection.defaultModeId, s.val);
+        });
+      }
+
+      // 2. Create Paint Styles
+      const existingPaintStyles = await figma.getLocalPaintStylesAsync();
+      lastScannedColors.forEach(c => {
+        const cleanName = c.suggestion.replace(/\s*\/\s*/g, '/');
+        const stylePath = `Colors/${cleanName}`;
+        let style = existingPaintStyles.find(s => s.name === stylePath);
+        if (!style) {
+          style = figma.createPaintStyle();
+          style.name = stylePath;
+          paintStylesCreated++;
+        }
+        style.paints = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b } }];
+      });
+
+      // 3. Create Text Styles
+      const existingTextStyles = await figma.getLocalTextStylesAsync();
+      for (const t of lastScannedTypo) {
+        const fontName = { family: t.family, style: t.style };
+        try {
+          await figma.loadFontAsync(fontName);
+          const stylePath = `Typography/${t.family}/${t.style}-${t.size}px`;
+          let style = existingTextStyles.find(s => s.name === stylePath);
+          if (!style) {
+            style = figma.createTextStyle();
+            style.name = stylePath;
+            textStylesCreated++;
+          }
+          style.fontName = fontName;
+          style.fontSize = t.size;
+        } catch (e) {
+          console.error("Could not load font for style generation:", fontName, e);
+        }
+      }
+
+      let summary = "Registered: ";
+      const items = [];
+      if (variablesCreated > 0) items.push(`${variablesCreated} variables`);
+      if (paintStylesCreated > 0) items.push(`${paintStylesCreated} paint styles`);
+      if (textStylesCreated > 0) items.push(`${textStylesCreated} text styles`);
+      
+      if (items.length > 0) {
+        summary += items.join(", ") + "! 🚀";
+      } else {
+        summary = "No new styles or variables created (they already exist).";
+      }
+      figma.notify(summary);
+
+    } catch (err: any) {
+      console.error("Figma styles registration error:", err);
+      figma.notify("Failed to register styles: " + (err.message || err), { error: true });
+    }
     return;
   }
 
@@ -1540,7 +1638,26 @@ figma.ui.onmessage = async (msg) => {
       // Append wrapper to Design System Page
       dsPage.appendChild(pageWrapper);
 
-       // 9. Inform UI that scan is complete and send stats
+      // Cache the results for native Figma style/variable registration
+      lastScannedColors = sortedColors.map(([hex, data]) => ({
+        hex,
+        r: data.r,
+        g: data.g,
+        b: data.b,
+        count: data.count,
+        suggestion: getSemanticSuggestion(data.r, data.g, data.b)
+      }));
+
+      lastScannedTypo = sortedTypo.map(([_, data]) => ({
+        family: data.family,
+        style: data.style,
+        size: data.size,
+        count: data.count
+      }));
+
+      lastScannedSpacing = sortedSpacing;
+
+       // 9. Inform UI that scan is complete and send stats & tokens
       const totalComponentsCount = representativeButtons.length + representativeInputs.length + representativeCards.length;
       figma.ui.resize(340, 600); // Auto adjust plugin height directly from code.ts
       figma.ui.postMessage({
@@ -1553,6 +1670,11 @@ figma.ui.onmessage = async (msg) => {
           assets: representativeImages.length + representativeIcons.length,
           tokens: sortedShadows.length + sortedSpacing.length,
           layers: layersScanned
+        },
+        tokensData: {
+          colors: lastScannedColors,
+          typography: lastScannedTypo,
+          spacing: lastScannedSpacing
         }
       });
 

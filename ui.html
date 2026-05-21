@@ -361,6 +361,205 @@
       color: #f3f4f6;
       font-family: monospace;
     }
+
+    /* Scroll container for screen complete */
+    .screen-scrollable {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      flex-grow: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 12px;
+      max-height: calc(100vh - 160px);
+    }
+
+    .screen-scrollable::-webkit-scrollbar {
+      width: 6px;
+    }
+    .screen-scrollable::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.01);
+      border-radius: 4px;
+    }
+    .screen-scrollable::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+    }
+    .screen-scrollable::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .screen-footer-actions {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* Actions and Register styles section */
+    .action-card {
+      background: rgba(99, 102, 241, 0.04);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 14px;
+      width: 100%;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .action-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #818cf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .action-desc {
+      font-size: 10px;
+      color: #9ca3af;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff;
+      font-size: 11px;
+      padding: 10px;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    }
+
+    .btn-action:hover {
+      background: linear-gradient(135deg, #5c54f5 0%, #8b4bfb 100%);
+      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.35);
+    }
+
+    .btn-action.success {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+    }
+
+    /* Code Export Card styles */
+    .export-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      width: 100%;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .export-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px 8px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .export-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #a855f7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #d1d5db;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .copy-btn.copied {
+      background: rgba(16, 185, 129, 0.1);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .tabs-header {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn:hover {
+      color: #f3f4f6;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tab-btn.active {
+      color: #a855f7;
+      border-bottom-color: #a855f7;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.15);
+      max-height: 180px;
+      overflow-y: auto;
+      text-align: left;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-content pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .tab-content code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10px;
+      color: #a7f3d0;
+      line-height: 1.4;
+    }
+
+    .tab-content::-webkit-scrollbar {
+      width: 4px;
+    }
+    .tab-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+    }
   </style>
 </head>
 
@@ -425,55 +624,90 @@
 
     <!-- Screen 3: Complete -->
     <div id="screen-complete" class="screen">
-      <div class="success-badge">
-        <svg viewBox="0 0 20 20">
-          <path d="M10 0a10 10 0 1010 10A10.011 10.011 0 0010 0zm4.757 7.757l-6 6a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L8 11.586l5.343-5.343a1 1 0 111.414 1.414z"/>
-        </svg>
-        Design System Generated!
+      <div class="screen-scrollable">
+        <div class="success-badge">
+          <svg viewBox="0 0 20 20">
+            <path d="M10 0a10 10 0 1010 10A10.011 10.011 0 0010 0zm4.757 7.757l-6 6a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L8 11.586l5.343-5.343a1 1 0 111.414 1.414z"/>
+          </svg>
+          Design System Generated!
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span id="stat-colors" class="stat-val">0</span>
+            <span class="stat-lbl">Colors</span>
+          </div>
+          <div class="stat-card">
+            <span id="stat-fonts" class="stat-val">0</span>
+            <span class="stat-lbl">Typography</span>
+          </div>
+          <div class="stat-card">
+            <span id="stat-components" class="stat-val">0</span>
+            <span class="stat-lbl">Components</span>
+          </div>
+          <div class="stat-card">
+            <span id="stat-logos" class="stat-val">0</span>
+            <span class="stat-lbl">Logos</span>
+          </div>
+          <div class="stat-card">
+            <span id="stat-assets" class="stat-val">0</span>
+            <span class="stat-lbl">Assets</span>
+          </div>
+          <div class="stat-card">
+            <span id="stat-tokens" class="stat-val">0</span>
+            <span class="stat-lbl">Shadows & Gaps</span>
+          </div>
+          <div class="stat-card">
+            <span id="stat-layers" class="stat-val">0</span>
+            <span class="stat-lbl">Layers Scanned</span>
+          </div>
+        </div>
+
+        <!-- Figma Native Tokens Integration Block -->
+        <div class="action-card">
+          <div class="action-title">Figma Tokens Integration</div>
+          <p class="action-desc">Publish detected color/spacing tokens as Local Variables and font sizes as Local Text Styles directly into this file.</p>
+          <button id="btn-register-tokens" class="btn btn-action">
+            Register Figma Styles & Variables
+          </button>
+        </div>
+
+        <!-- Code Export Block -->
+        <div class="export-card">
+          <div class="export-header">
+            <span class="export-title">Code Export</span>
+            <button id="btn-copy-code" class="copy-btn">Copy</button>
+          </div>
+          <div class="tabs-header">
+            <button class="tab-btn active" data-tab="css">CSS</button>
+            <button class="tab-btn" data-tab="tailwind">Tailwind</button>
+            <button class="tab-btn" data-tab="json">JSON</button>
+          </div>
+          <div class="tab-content active" id="tab-css">
+            <pre><code id="code-css">/* CSS Custom Properties */</code></pre>
+          </div>
+          <div class="tab-content" id="tab-tailwind">
+            <pre><code id="code-tailwind">/* Tailwind config extend */</code></pre>
+          </div>
+          <div class="tab-content" id="tab-json">
+            <pre><code id="code-json">/* JSON Tokens */</code></pre>
+          </div>
+        </div>
+
+        <div id="tips-container" class="tips-box" style="display: none;">
+          <div class="tips-title">Scanning Recommendations</div>
+          <ul id="tips-list" class="tips-list"></ul>
+        </div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span id="stat-colors" class="stat-val">0</span>
-          <span class="stat-lbl">Colors</span>
-        </div>
-        <div class="stat-card">
-          <span id="stat-fonts" class="stat-val">0</span>
-          <span class="stat-lbl">Typography</span>
-        </div>
-        <div class="stat-card">
-          <span id="stat-components" class="stat-val">0</span>
-          <span class="stat-lbl">Components</span>
-        </div>
-        <div class="stat-card">
-          <span id="stat-logos" class="stat-val">0</span>
-          <span class="stat-lbl">Logos</span>
-        </div>
-        <div class="stat-card">
-          <span id="stat-assets" class="stat-val">0</span>
-          <span class="stat-lbl">Assets</span>
-        </div>
-        <div class="stat-card">
-          <span id="stat-tokens" class="stat-val">0</span>
-          <span class="stat-lbl">Shadows & Gaps</span>
-        </div>
-        <div class="stat-card">
-          <span id="stat-layers" class="stat-val">0</span>
-          <span class="stat-lbl">Layers Scanned</span>
-        </div>
+      <div class="screen-footer-actions">
+        <button id="btn-new-scan" class="btn btn-primary" style="margin-bottom: 8px;">
+          Scan New Page
+        </button>
+        <button id="btn-restart" class="btn btn-secondary">
+          Scan & Rebuild Page
+        </button>
       </div>
-
-      <div id="tips-container" class="tips-box" style="display: none;">
-        <div class="tips-title">Scanning Recommendations</div>
-        <ul id="tips-list" class="tips-list"></ul>
-      </div>
-
-      <button id="btn-new-scan" class="btn btn-primary" style="margin-bottom: 8px;">
-        Scan New Page
-      </button>
-      <button id="btn-restart" class="btn btn-secondary">
-        Scan & Rebuild Page
-      </button>
     </div>
 
     <div class="footer">
@@ -490,6 +724,8 @@
     const btnRestart = document.getElementById('btn-restart');
     const btnNewScan = document.getElementById('btn-new-scan');
     const pageSelect = document.getElementById('page-select');
+    const btnRegisterTokens = document.getElementById('btn-register-tokens');
+    const btnCopyCode = document.getElementById('btn-copy-code');
     
     const scanningStatus = document.getElementById('scanning-status');
     const scanningStep = document.getElementById('scanning-step');
@@ -502,6 +738,10 @@
     const statAssets = document.getElementById('stat-assets');
     const statTokens = document.getElementById('stat-tokens');
 
+    const codeCss = document.getElementById('code-css');
+    const codeTailwind = document.getElementById('code-tailwind');
+    const codeJson = document.getElementById('code-json');
+
     function showScreen(screen) {
       screenReady.classList.remove('active');
       screenScanning.classList.remove('active');
@@ -510,7 +750,7 @@
 
       let height = 420;
       if (screen === screenScanning) height = 240;
-      if (screen === screenComplete) height = 600;
+      if (screen === screenComplete) height = 650;
       parent.postMessage({ pluginMessage: { type: "resize", width: 340, height } }, "*");
     }
 
@@ -528,6 +768,56 @@
 
     btnNewScan.onclick = () => {
       showScreen(screenReady);
+    };
+
+    btnRegisterTokens.onclick = () => {
+      btnRegisterTokens.disabled = true;
+      btnRegisterTokens.textContent = "Registering...";
+      parent.postMessage({ pluginMessage: { type: "create-figma-tokens" } }, "*");
+      
+      setTimeout(() => {
+        btnRegisterTokens.disabled = false;
+        btnRegisterTokens.textContent = "Register Figma Styles & Variables";
+        btnRegisterTokens.classList.add('success');
+        setTimeout(() => {
+          btnRegisterTokens.classList.remove('success');
+        }, 2000);
+      }, 1500);
+    };
+
+    // Tab buttons event listeners
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        btn.classList.add('active');
+        const tabId = `tab-${btn.getAttribute('data-tab')}`;
+        document.getElementById(tabId).classList.add('active');
+      };
+    });
+
+    // Copy to clipboard function
+    btnCopyCode.onclick = () => {
+      const activeTab = document.querySelector('.tab-btn.active').getAttribute('data-tab');
+      let textToCopy = "";
+      if (activeTab === "css") textToCopy = codeCss.textContent;
+      else if (activeTab === "tailwind") textToCopy = codeTailwind.textContent;
+      else if (activeTab === "json") textToCopy = codeJson.textContent;
+      
+      const textarea = document.createElement('textarea');
+      textarea.value = textToCopy;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      
+      btnCopyCode.textContent = "Copied!";
+      btnCopyCode.classList.add('copied');
+      setTimeout(() => {
+        btnCopyCode.textContent = "Copy";
+        btnCopyCode.classList.remove('copied');
+      }, 2000);
     };
 
     // Notify plugin code that the UI is fully loaded and ready to receive pages
@@ -560,6 +850,45 @@
         statTokens.textContent = msg.stats.tokens;
         statLayers.textContent = msg.stats.layers;
         
+        // Generate export code blocks
+        if (msg.tokensData) {
+          // CSS variables
+          let cssCode = ":root {\n";
+          if (msg.tokensData.colors) {
+            msg.tokensData.colors.forEach(c => {
+              const varName = c.suggestion.replace(/\s*\/\s*/g, '-').toLowerCase();
+              cssCode += `  --${varName}: ${c.hex};\n`;
+            });
+          }
+          if (msg.tokensData.spacing) {
+            msg.tokensData.spacing.forEach(s => {
+              cssCode += `  --space-${s.val}: ${s.val}px;\n`;
+            });
+          }
+          cssCode += "}";
+          codeCss.textContent = cssCode;
+
+          // Tailwind configuration
+          let tailwindCode = "module.exports = {\n  theme: {\n    extend: {\n      colors: {\n";
+          if (msg.tokensData.colors) {
+            msg.tokensData.colors.forEach(c => {
+              const varName = c.suggestion.replace(/\s*\/\s*/g, '-').toLowerCase();
+              tailwindCode += `        '${varName}': '${c.hex}',\n`;
+            });
+          }
+          tailwindCode += "      },\n      spacing: {\n";
+          if (msg.tokensData.spacing) {
+            msg.tokensData.spacing.forEach(s => {
+              tailwindCode += `        '${s.val}': '${s.val}px',\n`;
+            });
+          }
+          tailwindCode += "      }\n    }\n  }\n}";
+          codeTailwind.textContent = tailwindCode;
+
+          // JSON tokens
+          codeJson.textContent = JSON.stringify(msg.tokensData, null, 2);
+        }
+
         showScreen(screenComplete);
 
         const tipsContainer = document.getElementById('tips-container');
@@ -594,7 +923,7 @@
 
         if (hasMissing) {
           tipsContainer.style.display = 'block';
-          parent.postMessage({ pluginMessage: { type: "resize", width: 340, height: 740 } }, "*");
+          parent.postMessage({ pluginMessage: { type: "resize", width: 340, height: 780 } }, "*");
         } else {
           tipsContainer.style.display = 'none';
         }
