@@ -305,7 +305,7 @@ figma.ui.onmessage = async (msg) => {
           style.fontName = fontName;
           style.fontSize = t.size;
         } catch (e) {
-          console.error("Could not load font for style generation:", fontName, e);
+          // Font load error
         }
       }
 
@@ -323,7 +323,6 @@ figma.ui.onmessage = async (msg) => {
       figma.notify(summary);
 
     } catch (err: any) {
-      console.error("Figma styles registration error:", err);
       figma.notify("Failed to register styles: " + (err.message || err), { error: true });
     }
     return;
@@ -819,7 +818,7 @@ figma.ui.onmessage = async (msg) => {
 
             logoRow.appendChild(card);
           } catch (e) {
-            console.error("Error cloning logo:", e);
+            // Clone error
           }
         }
         logoFrame.appendChild(logoRow);
@@ -933,7 +932,7 @@ figma.ui.onmessage = async (msg) => {
 
             brandRow.appendChild(card);
           } catch (e) {
-            console.error("Error drawing brand card:", e);
+            // Draw error
           }
         });
 
@@ -1250,7 +1249,7 @@ figma.ui.onmessage = async (msg) => {
 
               row.appendChild(card);
             } catch (e) {
-              console.error("Error cloning node for preview:", e);
+              // Clone error
             }
           }
           compFrame.appendChild(row);
@@ -1345,7 +1344,7 @@ figma.ui.onmessage = async (msg) => {
 
               iconRow.appendChild(card);
             } catch (e) {
-              console.error("Error cloning icon:", e);
+              // Clone error
             }
           }
           assetsFrame.appendChild(iconRow);
@@ -1406,7 +1405,7 @@ figma.ui.onmessage = async (msg) => {
 
               imgRow.appendChild(card);
             } catch (e) {
-              console.error("Error drawing image thumb:", e);
+              // Draw error
             }
           }
           assetsFrame.appendChild(imgRow);
@@ -1488,7 +1487,7 @@ figma.ui.onmessage = async (msg) => {
 
             shadowRow.appendChild(card);
           } catch (e) {
-            console.error("Error creating shadow card:", e);
+            // Create error
           }
         });
 
@@ -1577,7 +1576,7 @@ figma.ui.onmessage = async (msg) => {
 
             spacingFrame.appendChild(row);
           } catch (e: any) {
-            console.error("Error creating spacing row:", e);
+            // Create error
           }
         });
 
@@ -1653,7 +1652,7 @@ figma.ui.onmessage = async (msg) => {
 
           pageWrapper.appendChild(guideFrame);
         } catch (e) {
-          console.error("Error creating guidelines frame:", e);
+          // Create error
         }
       }
 
@@ -1718,7 +1717,6 @@ figma.ui.onmessage = async (msg) => {
       figma.notify("Structura: Design System Page generated! 🚀");
 
     } catch (err: any) {
-      console.error("Structura Generation Error:", err);
       figma.notify("Generation failed: " + ((err && err.message) || err), { error: true });
       
       // Force exit scanning state in UI
