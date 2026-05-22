@@ -320,6 +320,20 @@
       opacity: 0.7;
     }
 
+    .footer-link {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #4b5563;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .footer-link:hover {
+      color: #a855f7;
+      background: rgba(168, 85, 247, 0.08);
+    }
+
     .tips-box {
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -707,8 +721,54 @@
       </div>
     </div>
 
-    <div class="footer">
-      by Shachi
+    <!-- Screen 4: About -->
+    <div id="screen-about" class="screen">
+      <div class="header" style="margin-bottom: 16px;">
+        <div class="logo-container">
+          <div class="logo-icon">S</div>
+          <div><span class="logo-text">Structura</span></div>
+        </div>
+        <p class="subtitle">About the Plugin & Author</p>
+      </div>
+
+      <div class="hero-card" style="text-align: left; padding: 12px; margin-bottom: 12px; backdrop-filter: blur(12px);">
+        <p class="hero-text" style="font-size: 11px; line-height: 1.5; color: #d1d5db;">
+          Structura automatically scans your Figma page, detects color & typography tokens, identifies layout spacing, and organizes components to generate a clean design system.
+        </p>
+      </div>
+
+      <div class="action-card" style="margin-bottom: 16px; background: rgba(168, 85, 247, 0.03); border-color: rgba(168, 85, 247, 0.15);">
+        <div class="action-title" style="color: #c095e9;">Author Information</div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #fff; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);">
+            AC
+          </div>
+          <div>
+            <div style="font-size: 12px; font-weight: 600; color: #f3f4f6;">addychannn</div>
+            <div style="font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px;">Plugin Creator</div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 10px; color: #9ca3af; line-height: 1.4;">
+            For issues, recommendations, or feedback:
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
+            <a href="mailto:addychannn@gmail.com" id="btn-email-link" style="color: #818cf8; text-decoration: none; font-size: 11px; font-weight: 600; transition: color 0.2s;" onmouseover="this.style.color='#a855f7'" onmouseout="this.style.color='#818cf8'">
+              addychannn@gmail.com
+            </a>
+            <button id="btn-copy-email" class="copy-btn" style="padding: 2px 6px; font-size: 9px;">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-about-back" class="btn btn-secondary" style="padding: 10px;">
+        Back
+      </button>
+    </div>
+
+    <div id="plugin-footer" class="footer">
+      <span id="btn-about-link" class="footer-link">About</span>
     </div>
   </div>
 
@@ -716,6 +776,7 @@
     const screenReady = document.getElementById('screen-ready');
     const screenScanning = document.getElementById('screen-scanning');
     const screenComplete = document.getElementById('screen-complete');
+    const screenAbout = document.getElementById('screen-about');
     
     const btnGenerate = document.getElementById('btn-generate');
     const btnRestart = document.getElementById('btn-restart');
@@ -723,6 +784,10 @@
     const pageSelect = document.getElementById('page-select');
     const btnRegisterTokens = document.getElementById('btn-register-tokens');
     const btnCopyCode = document.getElementById('btn-copy-code');
+    const btnAboutLink = document.getElementById('btn-about-link');
+    const btnAboutBack = document.getElementById('btn-about-back');
+    const btnCopyEmail = document.getElementById('btn-copy-email');
+    const pluginFooter = document.getElementById('plugin-footer');
     
     const scanningStatus = document.getElementById('scanning-status');
     const scanningStep = document.getElementById('scanning-step');
@@ -739,15 +804,33 @@
     const codeTailwind = document.getElementById('code-tailwind');
     const codeJson = document.getElementById('code-json');
 
+    let currentScreen = screenReady;
+    let previousScreen = screenReady;
+
     function showScreen(screen) {
+      if (screen !== screenAbout) {
+        previousScreen = currentScreen;
+        currentScreen = screen;
+      }
       screenReady.classList.remove('active');
       screenScanning.classList.remove('active');
       screenComplete.classList.remove('active');
+      screenAbout.classList.remove('active');
       screen.classList.add('active');
+
+      if (screen === screenAbout) {
+        pluginFooter.style.display = 'none';
+      } else {
+        pluginFooter.style.display = 'block';
+      }
 
       let height = 420;
       if (screen === screenScanning) height = 240;
-      if (screen === screenComplete) height = 650;
+      if (screen === screenAbout) height = 410;
+      if (screen === screenComplete) {
+        const tipsContainer = document.getElementById('tips-container');
+        height = (tipsContainer && tipsContainer.style.display === 'block') ? 780 : 650;
+      }
       parent.postMessage({ pluginMessage: { type: "resize", width: 340, height } }, "*");
     }
 
@@ -765,6 +848,31 @@
 
     btnNewScan.onclick = () => {
       showScreen(screenReady);
+    };
+
+    btnAboutLink.onclick = () => {
+      showScreen(screenAbout);
+    };
+
+    btnAboutBack.onclick = () => {
+      showScreen(previousScreen);
+    };
+
+    btnCopyEmail.onclick = () => {
+      const emailText = "addychannn@gmail.com";
+      const textarea = document.createElement('textarea');
+      textarea.value = emailText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      
+      btnCopyEmail.textContent = "Copied!";
+      btnCopyEmail.classList.add('copied');
+      setTimeout(() => {
+        btnCopyEmail.textContent = "Copy";
+        btnCopyEmail.classList.remove('copied');
+      }, 2000);
     };
 
     btnRegisterTokens.onclick = () => {
