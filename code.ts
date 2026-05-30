@@ -846,7 +846,11 @@ figma.ui.onmessage = async (msg) => {
           totalRatio += cr;
           contrastChecked++;
 
-          const isLarge = (tNode.fontSize as number) >= 18 || ((tNode.fontSize as number) >= 14 && tNode.fontName && (tNode.fontName as FontName).style.toLowerCase().includes("bold"));
+          const rawFontSize = tNode.fontSize;
+          const fontSize = typeof rawFontSize === "number" ? rawFontSize : 14; // default 14 if mixed
+          const rawFontName = tNode.fontName;
+          const isBold = typeof rawFontName !== "symbol" && rawFontName && (rawFontName as FontName).style.toLowerCase().includes("bold");
+          const isLarge = fontSize >= 18 || (fontSize >= 14 && isBold);
           const aaThreshold = isLarge ? 3.0 : 4.5;
           const aaaThreshold = isLarge ? 4.5 : 7.0;
 
@@ -898,10 +902,11 @@ figma.ui.onmessage = async (msg) => {
         let tinyCount = 0; let smallCount = 0; let total = 0;
         const scanTextSizes = (node: SceneNode) => {
           if (node.type === "TEXT") {
+            const rawSz = node.fontSize;
+            if (typeof rawSz !== "number") { total++; return; } // mixed — count but skip comparison
             total++;
-            const sz = node.fontSize as number;
-            if (sz < 12) { tinyCount++; smallTextNodes.push(node.name); }
-            else if (sz < 16) smallCount++;
+            if (rawSz < 12) { tinyCount++; smallTextNodes.push(node.name); }
+            else if (rawSz < 16) smallCount++;
             return;
           }
           if ("children" in node) node.children.forEach(scanTextSizes);
@@ -909,9 +914,15 @@ figma.ui.onmessage = async (msg) => {
         allScannedComponents.forEach(scanTextSizes);
         const minSz = total > 0 ? Math.min(...allScannedComponents.flatMap(n => {
           const sizes: number[] = [];
-          const collect = (node: SceneNode) => { if (node.type === "TEXT") sizes.push(node.fontSize as number); if ("children" in node) node.children.forEach(collect); };
+          const collect = (node: SceneNode) => {
+            if (node.type === "TEXT") {
+              const sz = node.fontSize;
+              if (typeof sz === "number") sizes.push(sz);
+            }
+            if ("children" in node) node.children.forEach(collect);
+          };
           collect(n); return sizes;
-        })) : 0;
+        }).filter(s => typeof s === "number" && isFinite(s))) : 0;
         wcagResults.push({
           criterion: "Text Size (Best Practice)",
           description: "Body text should meet minimum legibility sizes.",
