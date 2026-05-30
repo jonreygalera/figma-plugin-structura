@@ -1175,7 +1175,7 @@ figma.ui.onmessage = async (msg) => {
       const hasComponents = representativeButtons.length > 0 || representativeInputs.length > 0 || representativeCards.length > 0;
       if (hasComponents) {
         const compFrame = figma.createFrame();
-        compFrame.name = "Components Library";
+        compFrame.name = "Components Library (Raw)";
         compFrame.resize(1200, 100);
         compFrame.layoutMode = "VERTICAL";
         compFrame.counterAxisSizingMode = "AUTO";
@@ -1192,7 +1192,7 @@ figma.ui.onmessage = async (msg) => {
         compHeader.fontName = boldFont;
         compHeader.fontSize = 24;
         compHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-        compHeader.characters = "Detected Components";
+        compHeader.characters = "Detected Components as Raw";
         compFrame.appendChild(compHeader);
 
         // Sub-helper function to create visual section for each component type
@@ -1213,6 +1213,7 @@ figma.ui.onmessage = async (msg) => {
           row.counterAxisSizingMode = "AUTO";
           row.itemSpacing = 24;
           row.fills = [];
+          compFrame.appendChild(row);
 
           for (const item of list) {
             try {
@@ -1252,7 +1253,6 @@ figma.ui.onmessage = async (msg) => {
               // Clone error
             }
           }
-          compFrame.appendChild(row);
         };
 
         await renderComponentCategory("Buttons", representativeButtons);
@@ -1260,6 +1260,120 @@ figma.ui.onmessage = async (msg) => {
         await renderComponentCategory("Cards", representativeCards);
 
         pageWrapper.appendChild(compFrame);
+
+        // SECTION D2: COMPONENTS AS VARIANTS (Slate 900)
+        const variantsFrame = figma.createFrame();
+        variantsFrame.name = "Components Library (Variants)";
+        variantsFrame.resize(1200, 100);
+        variantsFrame.layoutMode = "VERTICAL";
+        variantsFrame.counterAxisSizingMode = "AUTO";
+        variantsFrame.primaryAxisSizingMode = "AUTO";
+        variantsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
+        variantsFrame.cornerRadius = 16;
+        variantsFrame.paddingLeft = 40;
+        variantsFrame.paddingRight = 40;
+        variantsFrame.paddingTop = 40;
+        variantsFrame.paddingBottom = 40;
+        variantsFrame.itemSpacing = 32;
+
+        const variantsHeader = figma.createText();
+        variantsHeader.fontName = boldFont;
+        variantsHeader.fontSize = 24;
+        variantsHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+        variantsHeader.characters = "Detected Components as Variants";
+        variantsFrame.appendChild(variantsHeader);
+
+        const renderComponentSetCategory = async (title: string, list: SceneNode[]) => {
+          if (list.length === 0) return;
+
+          const subTitle = figma.createText();
+          subTitle.fontName = boldFont;
+          subTitle.fontSize = 16;
+          subTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
+          subTitle.characters = `${title} Set`;
+          variantsFrame.appendChild(subTitle);
+
+          const row = figma.createFrame();
+          row.name = `${title} Row`;
+          row.layoutMode = "HORIZONTAL";
+          row.primaryAxisSizingMode = "AUTO";
+          row.counterAxisSizingMode = "AUTO";
+          row.itemSpacing = 24;
+          row.fills = [];
+          variantsFrame.appendChild(row);
+
+          const componentsList: ComponentNode[] = [];
+          const usedVariantNames = new Set<string>();
+
+          for (const item of list) {
+            try {
+              // Clone the item
+              const clone = item.clone();
+
+              let component: ComponentNode;
+              if (clone.type === "FRAME" || clone.type === "GROUP") {
+                row.appendChild(clone);
+                clone.x = 0;
+                clone.y = 0;
+                component = figma.createComponentFromNode(clone as FrameNode | GroupNode);
+              } else {
+                const wrapper = figma.createFrame();
+                wrapper.name = clone.name;
+                wrapper.resize(clone.width, clone.height);
+                wrapper.fills = [];
+                wrapper.layoutMode = "VERTICAL";
+                wrapper.primaryAxisSizingMode = "FIXED";
+                wrapper.counterAxisSizingMode = "FIXED";
+                
+                row.appendChild(wrapper);
+                wrapper.appendChild(clone);
+                clone.x = 0;
+                clone.y = 0;
+                component = figma.createComponentFromNode(wrapper);
+              }
+
+              // Name the component variant
+              let variantName = item.name.replace(/[=,]/g, "").trim();
+              if (!variantName) variantName = "Variant";
+              let uniqueName = variantName;
+              let counter = 1;
+              while (usedVariantNames.has(uniqueName)) {
+                uniqueName = `${variantName} ${counter++}`;
+              }
+              usedVariantNames.add(uniqueName);
+              
+              component.name = `Variant=${uniqueName}`;
+              componentsList.push(component);
+            } catch (e) {
+              // Clone/component error
+            }
+          }
+
+          if (componentsList.length > 0) {
+            try {
+              const componentSet = figma.combineAsVariants(componentsList, row);
+              componentSet.name = title; // e.g. "Buttons"
+              
+              // Style the component set container
+              componentSet.layoutMode = "HORIZONTAL";
+              componentSet.primaryAxisSizingMode = "AUTO";
+              componentSet.counterAxisSizingMode = "AUTO";
+              componentSet.itemSpacing = 24;
+              componentSet.paddingLeft = 24;
+              componentSet.paddingRight = 24;
+              componentSet.paddingTop = 24;
+              componentSet.paddingBottom = 24;
+            } catch (e) {
+              // combineAsVariants error
+            }
+          }
+        };
+
+        await renderComponentSetCategory("Buttons", representativeButtons);
+        await renderComponentSetCategory("Input Fields", representativeInputs);
+        await renderComponentSetCategory("Cards", representativeCards);
+
+        pageWrapper.appendChild(variantsFrame);
       }
 
       // SECTION E: ASSETS (Slate 900)
