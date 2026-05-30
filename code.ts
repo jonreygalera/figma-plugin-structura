@@ -803,7 +803,8 @@ figma.ui.onmessage = async (msg) => {
         return (lighter + 0.05) / (darker + 0.05);
       }
 
-      function getSolidFill(fills: readonly Paint[] | Paint[]): RGBA | null {
+      function getSolidFill(fills: readonly Paint[] | Paint[] | symbol | undefined): RGBA | null {
+        if (!fills || typeof fills === "symbol" || !Array.isArray(fills)) return null;
         for (const f of fills) {
           if (f.type === "SOLID" && f.opacity !== 0) {
             return { r: f.color.r, g: f.color.g, b: f.color.b, a: f.opacity ?? 1 };
@@ -828,11 +829,15 @@ figma.ui.onmessage = async (msg) => {
         allScannedComponents.forEach(findText);
 
         for (const tNode of allTextNodes) {
-          const tFill = getSolidFill(tNode.fills as Paint[]);
+          const rawFills = tNode.fills;
+          if (!Array.isArray(rawFills)) continue;
+          const tFill = getSolidFill(rawFills);
           if (!tFill) continue;
           const parent = tNode.parent;
           if (!parent || !("fills" in parent)) continue;
-          const bgFill = getSolidFill((parent as FrameNode).fills as Paint[]);
+          const rawBg = (parent as FrameNode).fills;
+          if (!Array.isArray(rawBg)) continue;
+          const bgFill = getSolidFill(rawBg);
           if (!bgFill) continue;
 
           const lT = relativeLuminance(tFill.r, tFill.g, tFill.b);
@@ -949,9 +954,12 @@ figma.ui.onmessage = async (msg) => {
         for (const comp of allScannedComponents) {
           if (comp.type !== "FRAME" && comp.type !== "COMPONENT" && comp.type !== "INSTANCE") continue;
           const f = comp as FrameNode;
-          if (!f.strokes || f.strokes.length === 0) continue;
-          const strokeFill = getSolidFill(f.strokes as Paint[]);
-          const bgFill = getSolidFill(f.fills as Paint[]);
+          const rawStrokes = f.strokes;
+          if (!Array.isArray(rawStrokes) || rawStrokes.length === 0) continue;
+          const strokeFill = getSolidFill(rawStrokes);
+          const rawFills = f.fills;
+          if (!Array.isArray(rawFills)) continue;
+          const bgFill = getSolidFill(rawFills);
           if (!strokeFill || !bgFill) continue;
           const lS = relativeLuminance(strokeFill.r, strokeFill.g, strokeFill.b);
           const lB = relativeLuminance(bgFill.r, bgFill.g, bgFill.b);
