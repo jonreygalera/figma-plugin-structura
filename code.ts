@@ -775,6 +775,215 @@ figma.ui.onmessage = async (msg) => {
         });
       }
 
+      // ── WCAG 2.1 AUDIT ENGINE ─────────────────────────────────────────────────
+      interface WcagResult {
+        criterion: string;
+        description: string;
+        aaStandard: string;
+        aaaStandard: string;
+        designerValue: string;
+        aaStatus: "pass" | "fail" | "warn" | "na";
+        aaaStatus: "pass" | "fail" | "warn" | "na";
+        affectedNodes: string[];
+      }
+      const wcagResults: WcagResult[] = [];
+
+      // Helper: relative luminance per WCAG formula
+      function relativeLuminance(r: number, g: number, b: number): number {
+        const toLinear = (c: number) => {
+          const s = c;
+          return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+      }
+
+      function contrastRatio(l1: number, l2: number): number {
+        const lighter = Math.max(l1, l2);
+        const darker = Math.min(l1, l2);
+        return (lighter + 0.05) / (darker + 0.05);
+      }
+
+      function getSolidFill(fills: readonly Paint[] | Paint[]): RGBA | null {
+        for (const f of fills) {
+          if (f.type === "SOLID" && f.opacity !== 0) {
+            return { r: f.color.r, g: f.color.g, b: f.color.b, a: f.opacity ?? 1 };
+          }
+        }
+        return null;
+      }
+
+      // 1.4.3 / 1.4.6 — TEXT CONTRAST
+      {
+        let contrastChecked = 0;
+        let aaPass = 0; let aaFail = 0;
+        let aaaPass = 0; let aaaFail = 0;
+        const failNodes: string[] = [];
+        let totalRatio = 0;
+
+        const allTextNodes: TextNode[] = [];
+        const findText = (node: SceneNode) => {
+          if (node.type === "TEXT") { allTextNodes.push(node); return; }
+          if ("children" in node) node.children.forEach(findText);
+        };
+        allScannedComponents.forEach(findText);
+
+        for (const tNode of allTextNodes) {
+          const tFill = getSolidFill(tNode.fills as Paint[]);
+          if (!tFill) continue;
+          const parent = tNode.parent;
+          if (!parent || !("fills" in parent)) continue;
+          const bgFill = getSolidFill((parent as FrameNode).fills as Paint[]);
+          if (!bgFill) continue;
+
+          const lT = relativeLuminance(tFill.r, tFill.g, tFill.b);
+          const lB = relativeLuminance(bgFill.r, bgFill.g, bgFill.b);
+          const cr = contrastRatio(lT, lB);
+          totalRatio += cr;
+          contrastChecked++;
+
+          const isLarge = (tNode.fontSize as number) >= 18 || ((tNode.fontSize as number) >= 14 && tNode.fontName && (tNode.fontName as FontName).style.toLowerCase().includes("bold"));
+          const aaThreshold = isLarge ? 3.0 : 4.5;
+          const aaaThreshold = isLarge ? 4.5 : 7.0;
+
+          if (cr >= aaThreshold) aaPass++; else { aaFail++; failNodes.push(tNode.name || "Text"); }
+          if (cr >= aaaThreshold) aaaPass++; else aaaFail++;
+        }
+
+        const avgRatio = contrastChecked > 0 ? (totalRatio / contrastChecked).toFixed(1) : "N/A";
+        wcagResults.push({
+          criterion: "1.4.3 Color Contrast (Text)",
+          description: "Minimum contrast between text and its background.",
+          aaStandard: "≥ 4.5:1 (normal) / ≥ 3:1 (large)",
+          aaaStandard: "≥ 7:1 (normal) / ≥ 4.5:1 (large)",
+          designerValue: contrastChecked > 0 ? `Avg ${avgRatio}:1 (${contrastChecked} checked)` : "No text found",
+          aaStatus: contrastChecked === 0 ? "na" : aaFail === 0 ? "pass" : aaPass > 0 ? "warn" : "fail",
+          aaaStatus: contrastChecked === 0 ? "na" : aaaFail === 0 ? "pass" : aaaPass > 0 ? "warn" : "fail",
+          affectedNodes: failNodes.slice(0, 3),
+        });
+      }
+
+      // 2.5.5 / 2.5.8 — TOUCH TARGET SIZE
+      {
+        const buttons = representativeButtons;
+        let aaFail = 0; let aaaFail = 0;
+        const aaFailNodes: string[] = [];
+        for (const btn of buttons) {
+          const w = btn.width; const h = btn.height;
+          if (w < 24 || h < 24) { aaFail++; aaFailNodes.push(btn.name); }
+          if (w < 44 || h < 44) aaaFail++;
+        }
+        const smallest = buttons.length > 0
+          ? `${Math.min(...buttons.map(b => Math.min(b.width, b.height))).toFixed(0)}px min`
+          : "No buttons";
+        wcagResults.push({
+          criterion: "2.5.5 / 2.5.8 Touch Target",
+          description: "Interactive elements must be large enough to tap reliably.",
+          aaStandard: "≥ 24×24 px",
+          aaaStandard: "≥ 44×44 px",
+          designerValue: buttons.length > 0 ? smallest : "No buttons found",
+          aaStatus: buttons.length === 0 ? "na" : aaFail === 0 ? "pass" : "fail",
+          aaaStatus: buttons.length === 0 ? "na" : aaaFail === 0 ? "pass" : aaaFail < buttons.length ? "warn" : "fail",
+          affectedNodes: aaFailNodes.slice(0, 3),
+        });
+      }
+
+      // MINIMUM TEXT SIZE (design best practice)
+      {
+        const smallTextNodes: string[] = [];
+        let tinyCount = 0; let smallCount = 0; let total = 0;
+        const scanTextSizes = (node: SceneNode) => {
+          if (node.type === "TEXT") {
+            total++;
+            const sz = node.fontSize as number;
+            if (sz < 12) { tinyCount++; smallTextNodes.push(node.name); }
+            else if (sz < 16) smallCount++;
+            return;
+          }
+          if ("children" in node) node.children.forEach(scanTextSizes);
+        };
+        allScannedComponents.forEach(scanTextSizes);
+        const minSz = total > 0 ? Math.min(...allScannedComponents.flatMap(n => {
+          const sizes: number[] = [];
+          const collect = (node: SceneNode) => { if (node.type === "TEXT") sizes.push(node.fontSize as number); if ("children" in node) node.children.forEach(collect); };
+          collect(n); return sizes;
+        })) : 0;
+        wcagResults.push({
+          criterion: "Text Size (Best Practice)",
+          description: "Body text should meet minimum legibility sizes.",
+          aaStandard: "≥ 12px body text",
+          aaaStandard: "≥ 16px body text",
+          designerValue: total > 0 ? `Min ${minSz}px (${total} nodes)` : "No text found",
+          aaStatus: total === 0 ? "na" : tinyCount === 0 ? "pass" : "fail",
+          aaaStatus: total === 0 ? "na" : (tinyCount + smallCount) === 0 ? "pass" : (tinyCount + smallCount) < total ? "warn" : "fail",
+          affectedNodes: smallTextNodes.slice(0, 3),
+        });
+      }
+
+      // 2.4.7 — FOCUS INDICATORS
+      {
+        const interactive = representativeButtons;
+        let hasStroke = 0;
+        for (const btn of interactive) {
+          if (btn.type === "FRAME" || btn.type === "COMPONENT" || btn.type === "INSTANCE") {
+            const f = btn as FrameNode;
+            if (f.strokes && f.strokes.length > 0 && (f.strokeWeight as number) > 0) hasStroke++;
+          }
+        }
+        const ratio = interactive.length > 0 ? Math.round((hasStroke / interactive.length) * 100) : 0;
+        wcagResults.push({
+          criterion: "2.4.7 Focus Indicators",
+          description: "Interactive elements must have a visible focus state.",
+          aaStandard: "Outline/stroke present on interactive",
+          aaaStandard: "High-contrast, ≥ 3:1 indicator",
+          designerValue: interactive.length > 0 ? `${ratio}% have strokes (${hasStroke}/${interactive.length})` : "No buttons found",
+          aaStatus: interactive.length === 0 ? "na" : ratio >= 80 ? "pass" : ratio >= 50 ? "warn" : "fail",
+          aaaStatus: interactive.length === 0 ? "na" : ratio >= 100 ? "pass" : ratio >= 80 ? "warn" : "fail",
+          affectedNodes: [],
+        });
+      }
+
+      // 1.4.11 — NON-TEXT CONTRAST (icons, dividers, borders)
+      {
+        let borderChecked = 0; let aaPass = 0; let aaaPass = 0;
+        const failNodes: string[] = [];
+        for (const comp of allScannedComponents) {
+          if (comp.type !== "FRAME" && comp.type !== "COMPONENT" && comp.type !== "INSTANCE") continue;
+          const f = comp as FrameNode;
+          if (!f.strokes || f.strokes.length === 0) continue;
+          const strokeFill = getSolidFill(f.strokes as Paint[]);
+          const bgFill = getSolidFill(f.fills as Paint[]);
+          if (!strokeFill || !bgFill) continue;
+          const lS = relativeLuminance(strokeFill.r, strokeFill.g, strokeFill.b);
+          const lB = relativeLuminance(bgFill.r, bgFill.g, bgFill.b);
+          const cr = contrastRatio(lS, lB);
+          borderChecked++;
+          if (cr >= 3.0) aaPass++; else failNodes.push(f.name);
+          if (cr >= 4.5) aaaPass++;
+        }
+        wcagResults.push({
+          criterion: "1.4.11 Non-text Contrast",
+          description: "UI components and graphical objects must meet contrast.",
+          aaStandard: "≥ 3:1",
+          aaaStandard: "≥ 4.5:1",
+          designerValue: borderChecked > 0 ? `${borderChecked} borders checked` : "No borders found",
+          aaStatus: borderChecked === 0 ? "na" : aaPass === borderChecked ? "pass" : aaPass > 0 ? "warn" : "fail",
+          aaaStatus: borderChecked === 0 ? "na" : aaaPass === borderChecked ? "pass" : aaaPass > 0 ? "warn" : "fail",
+          affectedNodes: failNodes.slice(0, 3),
+        });
+      }
+
+      // Accessibility Score (0–100)
+      const wcagTotalChecks = wcagResults.filter(r => r.aaStatus !== "na").length * 2;
+      const wcagPassed = wcagResults.reduce((acc, r) => {
+        if (r.aaStatus === "pass") acc += 2;
+        else if (r.aaStatus === "warn") acc += 1;
+        if (r.aaaStatus === "pass") acc += 2;
+        else if (r.aaaStatus === "warn") acc += 1;
+        return acc;
+      }, 0);
+      const accessibilityScore = wcagTotalChecks > 0 ? Math.min(100, Math.round((wcagPassed / wcagTotalChecks) * 100)) : 100;
+      // ─────────────────────────────────────────────────────────────────────────
+
       const pageWrapper = figma.createFrame();
       pageWrapper.name = "Design System Container";
       pageWrapper.layoutMode = "VERTICAL";
@@ -991,6 +1200,286 @@ figma.ui.onmessage = async (msg) => {
         parent.appendChild(card);
       }
 
+      // Helper: draw WCAG 2.1 Comparison Table on canvas
+      async function drawWCAGComparisonTable(parent: FrameNode) {
+        const wrap = figma.createFrame();
+        wrap.name = "WCAG 2.1 Accessibility Audit";
+        wrap.layoutMode = "VERTICAL";
+        wrap.resize(1120, 100);
+        wrap.counterAxisSizingMode = "FIXED";
+        wrap.primaryAxisSizingMode = "AUTO";
+        wrap.layoutAlign = "STRETCH";
+        wrap.fills = [{ type: "SOLID", color: { r: 10/255, g: 16/255, b: 30/255 } }];
+        wrap.cornerRadius = 16;
+        wrap.strokes = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }];
+        wrap.strokeWeight = 1.5;
+        wrap.paddingLeft = 28;
+        wrap.paddingRight = 28;
+        wrap.paddingTop = 24;
+        wrap.paddingBottom = 24;
+        wrap.itemSpacing = 16;
+
+        // ── Score Banner ──────────────────────────────────────────────────────
+        const scoreBanner = figma.createFrame();
+        scoreBanner.layoutMode = "HORIZONTAL";
+        scoreBanner.primaryAxisSizingMode = "AUTO";
+        scoreBanner.counterAxisSizingMode = "AUTO";
+        scoreBanner.itemSpacing = 20;
+        scoreBanner.fills = [];
+        scoreBanner.layoutAlign = "STRETCH";
+        scoreBanner.counterAxisAlignItems = "CENTER";
+
+        // Score circle (text-based donut)
+        const circle = figma.createFrame();
+        circle.resize(72, 72);
+        circle.layoutMode = "VERTICAL";
+        circle.primaryAxisSizingMode = "FIXED";
+        circle.counterAxisSizingMode = "FIXED";
+        circle.primaryAxisAlignItems = "CENTER";
+        circle.counterAxisAlignItems = "CENTER";
+        circle.cornerRadius = 36;
+        let circleBg = { r: 16/255, g: 185/255, b: 129/255 }; // green
+        if (accessibilityScore < 50) circleBg = { r: 239/255, g: 68/255, b: 68/255 };
+        else if (accessibilityScore < 80) circleBg = { r: 245/255, g: 158/255, b: 11/255 };
+        circle.fills = [{ type: "SOLID", color: circleBg, opacity: 0.15 }];
+        circle.strokes = [{ type: "SOLID", color: circleBg }];
+        circle.strokeWeight = 2.5;
+        const circleNum = figma.createText();
+        circleNum.fontName = boldFont;
+        circleNum.fontSize = 20;
+        circleNum.fills = [{ type: "SOLID", color: circleBg }];
+        circleNum.characters = `${accessibilityScore}`;
+        circle.appendChild(circleNum);
+        scoreBanner.appendChild(circle);
+
+        // Score labels col
+        const scoreLabels = figma.createFrame();
+        scoreLabels.layoutMode = "VERTICAL";
+        scoreLabels.primaryAxisSizingMode = "AUTO";
+        scoreLabels.counterAxisSizingMode = "AUTO";
+        scoreLabels.itemSpacing = 4;
+        scoreLabels.fills = [];
+        const scoreTitle = figma.createText();
+        scoreTitle.fontName = boldFont;
+        scoreTitle.fontSize = 15;
+        scoreTitle.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+        scoreTitle.characters = "WCAG 2.1 Accessibility Score";
+        scoreLabels.appendChild(scoreTitle);
+        const scoreSubtitle = figma.createText();
+        scoreSubtitle.fontName = defaultFont;
+        scoreSubtitle.fontSize = 10;
+        scoreSubtitle.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
+        scoreSubtitle.characters = `${wcagResults.filter(r => r.aaStatus === "pass").length} of ${wcagResults.length} AA checks passed  ·  Designed vs. WCAG 2.1 AA & AAA`;
+        scoreLabels.appendChild(scoreSubtitle);
+        scoreBanner.appendChild(scoreLabels);
+        wrap.appendChild(scoreBanner);
+
+        // ── Column Header Row ─────────────────────────────────────────────────
+        const colHeaders = ["WCAG CRITERION", "WCAG AA", "WCAG AAA", "YOUR DESIGN", "AA", "AAA"];
+        const colWidths = [290, 180, 160, 220, 60, 60];
+
+        const makeCell = async (text: string, w: number, isHeader: boolean, color?: RGB) => {
+          const cell = figma.createFrame();
+          cell.layoutMode = "VERTICAL";
+          cell.resize(w, 10);
+          cell.counterAxisSizingMode = "FIXED";
+          cell.primaryAxisSizingMode = "AUTO";
+          cell.fills = [];
+          cell.paddingTop = 4;
+          cell.paddingBottom = 4;
+          const t = figma.createText();
+          t.fontName = isHeader ? boldFont : defaultFont;
+          t.fontSize = isHeader ? 8 : 9;
+          t.fills = [{ type: "SOLID", color: color || (isHeader ? { r: 100/255, g: 116/255, b: 139/255 } : { r: 203/255, g: 213/255, b: 225/255 }) }];
+          t.characters = text;
+          t.textAutoResize = "HEIGHT";
+          t.layoutAlign = "STRETCH";
+          cell.appendChild(t);
+          return cell;
+        };
+
+        const makeBadgeCell = (status: string, w: number) => {
+          const cell = figma.createFrame();
+          cell.resize(w, 10);
+          cell.layoutMode = "VERTICAL";
+          cell.primaryAxisSizingMode = "AUTO";
+          cell.counterAxisSizingMode = "FIXED";
+          cell.primaryAxisAlignItems = "CENTER";
+          cell.counterAxisAlignItems = "CENTER";
+          cell.paddingTop = 4;
+          cell.paddingBottom = 4;
+          cell.fills = [];
+
+          const badge = figma.createFrame();
+          badge.layoutMode = "HORIZONTAL";
+          badge.paddingLeft = 7;
+          badge.paddingRight = 7;
+          badge.paddingTop = 3;
+          badge.paddingBottom = 3;
+          badge.primaryAxisSizingMode = "AUTO";
+          badge.counterAxisSizingMode = "AUTO";
+          badge.counterAxisAlignItems = "CENTER";
+          badge.cornerRadius = 4;
+
+          let bgCol = { r: 16/255, g: 185/255, b: 129/255 };
+          let label = "PASS";
+          if (status === "fail") { bgCol = { r: 239/255, g: 68/255, b: 68/255 }; label = "FAIL"; }
+          else if (status === "warn") { bgCol = { r: 245/255, g: 158/255, b: 11/255 }; label = "WARN"; }
+          else if (status === "na") { bgCol = { r: 71/255, g: 85/255, b: 105/255 }; label = "N/A"; }
+          badge.fills = [{ type: "SOLID", color: bgCol, opacity: 0.18 }];
+          badge.strokes = [{ type: "SOLID", color: bgCol }];
+          badge.strokeWeight = 1;
+
+          const badgeText = figma.createText();
+          badgeText.fontName = boldFont;
+          badgeText.fontSize = 7;
+          badgeText.fills = [{ type: "SOLID", color: bgCol }];
+          badgeText.characters = label;
+          badge.appendChild(badgeText);
+          cell.appendChild(badge);
+          return cell;
+        };
+
+        // Header row
+        const hdrRow = figma.createFrame();
+        hdrRow.layoutMode = "HORIZONTAL";
+        hdrRow.primaryAxisSizingMode = "AUTO";
+        hdrRow.counterAxisSizingMode = "AUTO";
+        hdrRow.itemSpacing = 0;
+        hdrRow.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }];
+        hdrRow.paddingLeft = 12;
+        hdrRow.paddingRight = 12;
+        hdrRow.paddingTop = 6;
+        hdrRow.paddingBottom = 6;
+        hdrRow.cornerRadius = 6;
+        hdrRow.layoutAlign = "STRETCH";
+        for (let i = 0; i < colHeaders.length; i++) {
+          hdrRow.appendChild(await makeCell(colHeaders[i], colWidths[i], true));
+        }
+        wrap.appendChild(hdrRow);
+
+        // ── Data Rows ─────────────────────────────────────────────────────────
+        for (let idx = 0; idx < wcagResults.length; idx++) {
+          const r = wcagResults[idx];
+          const row = figma.createFrame();
+          row.name = r.criterion;
+          row.layoutMode = "HORIZONTAL";
+          row.primaryAxisSizingMode = "AUTO";
+          row.counterAxisSizingMode = "AUTO";
+          row.itemSpacing = 0;
+          row.layoutAlign = "STRETCH";
+          row.paddingLeft = 12;
+          row.paddingRight = 12;
+          row.paddingTop = 2;
+          row.paddingBottom = 2;
+          row.fills = idx % 2 === 0
+            ? []
+            : [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 }, opacity: 0.5 }];
+
+          // Criterion cell (name + description)
+          const critCell = figma.createFrame();
+          critCell.resize(colWidths[0], 10);
+          critCell.layoutMode = "VERTICAL";
+          critCell.primaryAxisSizingMode = "AUTO";
+          critCell.counterAxisSizingMode = "FIXED";
+          critCell.fills = [];
+          critCell.paddingTop = 8;
+          critCell.paddingBottom = 8;
+          critCell.itemSpacing = 2;
+          const critName = figma.createText();
+          critName.fontName = boldFont;
+          critName.fontSize = 9;
+          critName.fills = [{ type: "SOLID", color: { r: 226/255, g: 232/255, b: 240/255 } }];
+          critName.characters = r.criterion;
+          critName.textAutoResize = "HEIGHT";
+          critName.layoutAlign = "STRETCH";
+          critCell.appendChild(critName);
+          const critDesc = figma.createText();
+          critDesc.fontName = defaultFont;
+          critDesc.fontSize = 8;
+          critDesc.fills = [{ type: "SOLID", color: { r: 100/255, g: 116/255, b: 139/255 } }];
+          critDesc.characters = r.description;
+          critDesc.textAutoResize = "HEIGHT";
+          critDesc.layoutAlign = "STRETCH";
+          critCell.appendChild(critDesc);
+          if (r.affectedNodes.length > 0) {
+            const affected = figma.createText();
+            affected.fontName = defaultFont;
+            affected.fontSize = 7;
+            affected.fills = [{ type: "SOLID", color: { r: 248/255, g: 113/255, b: 113/255 } }];
+            affected.characters = `↳ ${r.affectedNodes.join(", ")}`;
+            affected.textAutoResize = "HEIGHT";
+            affected.layoutAlign = "STRETCH";
+            critCell.appendChild(affected);
+          }
+          row.appendChild(critCell);
+          row.appendChild(await makeCell(r.aaStandard, colWidths[1], false, { r: 148/255, g: 163/255, b: 184/255 }));
+          row.appendChild(await makeCell(r.aaaStandard, colWidths[2], false, { r: 100/255, g: 116/255, b: 139/255 }));
+          row.appendChild(await makeCell(r.designerValue, colWidths[3], false, { r: 226/255, g: 232/255, b: 240/255 }));
+          row.appendChild(makeBadgeCell(r.aaStatus, colWidths[4]));
+          row.appendChild(makeBadgeCell(r.aaaStatus, colWidths[5]));
+          wrap.appendChild(row);
+        }
+
+        // ── Divider ───────────────────────────────────────────────────────────
+        const div = figma.createFrame();
+        div.resize(1064, 1);
+        div.fills = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }];
+        div.layoutAlign = "STRETCH";
+        wrap.appendChild(div);
+
+        // ── Legend Bar ────────────────────────────────────────────────────────
+        const legend = figma.createFrame();
+        legend.layoutMode = "HORIZONTAL";
+        legend.primaryAxisSizingMode = "AUTO";
+        legend.counterAxisSizingMode = "AUTO";
+        legend.itemSpacing = 24;
+        legend.fills = [];
+        legend.layoutAlign = "STRETCH";
+        legend.counterAxisAlignItems = "CENTER";
+
+        const makeLegendItem = (label: string, count: number, color: RGB) => {
+          const item = figma.createFrame();
+          item.layoutMode = "HORIZONTAL";
+          item.primaryAxisSizingMode = "AUTO";
+          item.counterAxisSizingMode = "AUTO";
+          item.itemSpacing = 6;
+          item.fills = [];
+          item.counterAxisAlignItems = "CENTER";
+          const dot = figma.createFrame();
+          dot.resize(8, 8);
+          dot.cornerRadius = 4;
+          dot.fills = [{ type: "SOLID", color }];
+          item.appendChild(dot);
+          const t = figma.createText();
+          t.fontName = defaultFont;
+          t.fontSize = 9;
+          t.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
+          t.characters = `${label}: ${count}`;
+          item.appendChild(t);
+          return item;
+        };
+
+        const aaPassCount = wcagResults.filter(r => r.aaStatus === "pass").length;
+        const aaWarnCount = wcagResults.filter(r => r.aaStatus === "warn").length;
+        const aaFailCount = wcagResults.filter(r => r.aaStatus === "fail").length;
+
+        legend.appendChild(makeLegendItem("AA Pass", aaPassCount, { r: 16/255, g: 185/255, b: 129/255 }));
+        legend.appendChild(makeLegendItem("AA Warn", aaWarnCount, { r: 245/255, g: 158/255, b: 11/255 }));
+        legend.appendChild(makeLegendItem("AA Fail", aaFailCount, { r: 239/255, g: 68/255, b: 68/255 }));
+        const spacerL = figma.createFrame(); spacerL.layoutGrow = 1; spacerL.fills = [];
+        legend.appendChild(spacerL);
+        const srcNote = figma.createText();
+        srcNote.fontName = defaultFont;
+        srcNote.fontSize = 8;
+        srcNote.fills = [{ type: "SOLID", color: { r: 71/255, g: 85/255, b: 105/255 } }];
+        srcNote.characters = "Standards: WCAG 2.1  ·  wcag.io";
+        legend.appendChild(srcNote);
+        wrap.appendChild(legend);
+
+        parent.appendChild(wrap);
+      }
+
       // SECTION A: HEADER BANNER (Slate 900 / Themed)
       const headerFrame = figma.createFrame();
       headerFrame.name = "Header Banner";
@@ -1144,6 +1633,8 @@ figma.ui.onmessage = async (msg) => {
 
       // Draw QA Health Audit Card inside this dedicated section
       await drawHealthAuditCard(qaFrame);
+      // Draw WCAG 2.1 Standards vs. Designer comparison table
+      await drawWCAGComparisonTable(qaFrame);
       pageWrapper.appendChild(qaFrame);
 
       // SECTION B1: BRANDING COLORS (Themed)
