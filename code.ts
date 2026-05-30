@@ -705,6 +705,76 @@ figma.ui.onmessage = async (msg) => {
       const primaryBrand = brandColorsList.length > 0 ? brandColorsList[0][1] : undefined;
       const theme = deriveTheme(primaryBrand);
 
+      const allScannedComponents = [...detectedButtons, ...detectedInputs, ...detectedCards];
+      const totalComponentsScanned = allScannedComponents.length;
+      let totalAutoLayoutScanned = 0;
+      const nonAutoLayoutNames: string[] = [];
+
+      allScannedComponents.forEach(node => {
+        const isAL = (node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE") && (node as FrameNode).layoutMode !== "NONE";
+        if (isAL) {
+          totalAutoLayoutScanned++;
+        } else {
+          nonAutoLayoutNames.push(node.name);
+        }
+      });
+
+      const autoLayoutRate = totalComponentsScanned > 0 ? Math.round((totalAutoLayoutScanned / totalComponentsScanned) * 100) : 100;
+
+      let consistentSpacingCount = 0;
+      let totalSpacingCount = 0;
+      Object.keys(spacingValues).forEach(sValStr => {
+        const sVal = parseInt(sValStr);
+        if (!isNaN(sVal)) {
+          totalSpacingCount++;
+          if (sVal % 4 === 0) {
+            consistentSpacingCount++;
+          }
+        }
+      });
+      const spacingConsistency = totalSpacingCount > 0 ? Math.round((consistentSpacingCount / totalSpacingCount) * 100) : 100;
+      const colorTokenCoverage = 100;
+
+      const designQualityScore = Math.round((autoLayoutRate * 0.6) + (spacingConsistency * 0.4));
+
+      const qaRecommendations: Array<{ type: "warning" | "info" | "success"; text: string }> = [];
+      if (autoLayoutRate < 100) {
+        qaRecommendations.push({
+          type: "warning",
+          text: `Auto Layout: ${totalComponentsScanned - totalAutoLayoutScanned} layers are missing Auto Layout. Absolute positions prevent responsiveness.`
+        });
+        nonAutoLayoutNames.slice(0, 3).forEach(name => {
+          qaRecommendations.push({
+            type: "info",
+            text: `↳ Recommendation: Wrap "${name}" in an Auto Layout Frame.`
+          });
+        });
+      } else {
+        qaRecommendations.push({
+          type: "success",
+          text: "Auto Layout Compliance: 100% of components utilize responsive Auto Layout."
+        });
+      }
+
+      if (spacingConsistency < 80) {
+        qaRecommendations.push({
+          type: "warning",
+          text: `Spacing Grid: Consistency is ${spacingConsistency}%. Align margins & gaps to a 4px/8px grid scale.`
+        });
+      } else {
+        qaRecommendations.push({
+          type: "success",
+          text: "Spacing Grid Consistency: Standard 4px/8px spacing grids are fully respected."
+        });
+      }
+
+      if (representativeLogos.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Asset Audit: No brand logo nodes were identified. Tag logo frames with 'logo' in their layers."
+        });
+      }
+
       const pageWrapper = figma.createFrame();
       pageWrapper.name = "Design System Container";
       pageWrapper.layoutMode = "VERTICAL";
@@ -716,6 +786,210 @@ figma.ui.onmessage = async (msg) => {
 
       // Append wrapper to Design System Page immediately to activate Auto Layout engine
       dsPage.appendChild(pageWrapper);
+
+      // Helper to draw the QA Health Audit dashboard card on canvas
+      async function drawHealthAuditCard(parent: FrameNode) {
+        const card = figma.createFrame();
+        card.name = "Design System QA Health Audit";
+        card.layoutMode = "VERTICAL";
+        card.resize(1120, 100);
+        card.counterAxisSizingMode = "FIXED";
+        card.primaryAxisSizingMode = "AUTO";
+        card.layoutAlign = "STRETCH";
+        card.fills = [{ type: "SOLID", color: theme.cardBg }];
+        card.cornerRadius = 16;
+        card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
+        card.strokeWeight = 1.5;
+        card.paddingLeft = 24;
+        card.paddingRight = 24;
+        card.paddingTop = 24;
+        card.paddingBottom = 24;
+        card.itemSpacing = 20;
+
+        // Top Row: Title & Score
+        const topRow = figma.createFrame();
+        topRow.name = "Header Row";
+        topRow.layoutMode = "HORIZONTAL";
+        topRow.primaryAxisSizingMode = "AUTO";
+        topRow.counterAxisSizingMode = "AUTO";
+        topRow.itemSpacing = 20;
+        topRow.fills = [];
+        topRow.layoutAlign = "STRETCH";
+        topRow.counterAxisAlignItems = "CENTER";
+
+        const titleText = figma.createText();
+        titleText.fontName = boldFont;
+        titleText.fontSize = 18;
+        titleText.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+        titleText.characters = "Design System Compliance & QA Audit";
+        topRow.appendChild(titleText);
+
+        const spacerNode = figma.createFrame();
+        spacerNode.layoutGrow = 1;
+        spacerNode.fills = [];
+        topRow.appendChild(spacerNode);
+
+        // Score Badge
+        const scoreBadge = figma.createFrame();
+        scoreBadge.layoutMode = "HORIZONTAL";
+        scoreBadge.paddingLeft = 14;
+        scoreBadge.paddingRight = 14;
+        scoreBadge.paddingTop = 6;
+        scoreBadge.paddingBottom = 6;
+        scoreBadge.cornerRadius = 24;
+        
+        let scoreBgColor = { r: 16/255, g: 185/255, b: 129/255 }; // Green 500
+        let scoreTxtColor = { r: 52/255, g: 211/255, b: 153/255 }; // Green 400
+        if (designQualityScore < 70) {
+          scoreBgColor = { r: 239/255, g: 68/255, b: 68/255 }; // Red 500
+          scoreTxtColor = { r: 248/255, g: 113/255, b: 113/255 };
+        } else if (designQualityScore < 90) {
+          scoreBgColor = { r: 245/255, g: 158/255, b: 11/255 }; // Amber 500
+          scoreTxtColor = { r: 251/255, g: 191/255, b: 36/255 };
+        }
+        scoreBadge.fills = [{ type: "SOLID", color: scoreBgColor, opacity: 0.15 }];
+        scoreBadge.strokes = [{ type: "SOLID", color: scoreBgColor }];
+        scoreBadge.strokeWeight = 1;
+
+        const scoreText = figma.createText();
+        scoreText.fontName = boldFont;
+        scoreText.fontSize = 13;
+        scoreText.fills = [{ type: "SOLID", color: scoreTxtColor }];
+        scoreText.characters = `HEALTH SCORE: ${designQualityScore}%`;
+        scoreBadge.appendChild(scoreText);
+        topRow.appendChild(scoreBadge);
+        
+        card.appendChild(topRow);
+
+        // Grid Container of Scores
+        const grid = figma.createFrame();
+        grid.name = "Audit Cards Grid";
+        grid.layoutMode = "HORIZONTAL";
+        grid.primaryAxisSizingMode = "AUTO";
+        grid.counterAxisSizingMode = "AUTO";
+        grid.itemSpacing = 20;
+        grid.fills = [];
+        grid.layoutAlign = "STRETCH";
+
+        const addAuditMetricCard = (label: string, value: string, desc: string, isOk: boolean) => {
+          const mCard = figma.createFrame();
+          mCard.name = `${label} Metric`;
+          mCard.layoutMode = "VERTICAL";
+          mCard.resize(344, 10);
+          mCard.counterAxisSizingMode = "FIXED";
+          mCard.primaryAxisSizingMode = "AUTO";
+          mCard.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }];
+          mCard.cornerRadius = 8;
+          mCard.strokes = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }];
+          mCard.strokeWeight = 1;
+          mCard.paddingLeft = 14;
+          mCard.paddingRight = 14;
+          mCard.paddingTop = 12;
+          mCard.paddingBottom = 12;
+          mCard.itemSpacing = 4;
+
+          const mLabel = figma.createText();
+          mLabel.fontName = boldFont;
+          mLabel.fontSize = 9;
+          mLabel.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
+          mLabel.characters = label;
+          mLabel.textAutoResize = "HEIGHT";
+          mLabel.layoutAlign = "STRETCH";
+          mCard.appendChild(mLabel);
+
+          const mValue = figma.createText();
+          mValue.fontName = boldFont;
+          mValue.fontSize = 24;
+          mValue.fills = [{ type: "SOLID", color: isOk ? { r: 52/255, g: 211/255, b: 153/255 } : { r: 251/255, g: 191/255, b: 36/255 } }];
+          mValue.characters = value;
+          mValue.textAutoResize = "HEIGHT";
+          mValue.layoutAlign = "STRETCH";
+          mCard.appendChild(mValue);
+
+          const mDesc = figma.createText();
+          mDesc.fontName = defaultFont;
+          mDesc.fontSize = 8;
+          mDesc.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
+          mDesc.characters = desc;
+          mDesc.textAutoResize = "HEIGHT";
+          mDesc.layoutAlign = "STRETCH";
+          mCard.appendChild(mDesc);
+
+          grid.appendChild(mCard);
+        };
+
+        addAuditMetricCard("AUTO LAYOUT COMPLIANCE", `${autoLayoutRate}%`, `Measures how many scanned components adopt Figma Auto Layout instead of fixed sizes.`, autoLayoutRate >= 90);
+        addAuditMetricCard("SPACING CONSISTENCY", `${spacingConsistency}%`, `Audits alignment of internal margins and item spacings to standard 4px/8px scales.`, spacingConsistency >= 80);
+        addAuditMetricCard("VARIABLE TOKENIZATION", `${colorTokenCoverage}%`, `Evaluates if all design system colors map to registered variable naming conventions.`, true);
+
+        card.appendChild(grid);
+
+        // Divider
+        const divider = figma.createFrame();
+        divider.resize(1072, 0.5);
+        divider.fills = [{ type: "SOLID", color: { r: 51/255, g: 65/255, b: 85/255 } }];
+        divider.layoutAlign = "STRETCH";
+        card.appendChild(divider);
+
+        // Recommendations List
+        const recSection = figma.createFrame();
+        recSection.name = "Recommendations Section";
+        recSection.layoutMode = "VERTICAL";
+        recSection.primaryAxisSizingMode = "AUTO";
+        recSection.counterAxisSizingMode = "AUTO";
+        recSection.itemSpacing = 8;
+        recSection.fills = [];
+        recSection.layoutAlign = "STRETCH";
+
+        const recTitle = figma.createText();
+        recTitle.fontName = boldFont;
+        recTitle.fontSize = 11;
+        recTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
+        recTitle.characters = "AUTOMATED RECTIFICATION GUIDE";
+        recTitle.textAutoResize = "HEIGHT";
+        recTitle.layoutAlign = "STRETCH";
+        recSection.appendChild(recTitle);
+
+        for (const rec of qaRecommendations) {
+          const recRow = figma.createFrame();
+          recRow.layoutMode = "HORIZONTAL";
+          recRow.primaryAxisSizingMode = "AUTO";
+          recRow.counterAxisSizingMode = "AUTO";
+          recRow.itemSpacing = 8;
+          recRow.fills = [];
+          recRow.layoutAlign = "STRETCH";
+
+          const bullet = figma.createText();
+          bullet.fontName = boldFont;
+          bullet.fontSize = 10;
+          let bulletColor = { r: 16/255, g: 185/255, b: 129/255 }; // green
+          let bulletChar = "✓";
+          if (rec.type === "warning") {
+            bulletColor = { r: 239/255, g: 68/255, b: 68/255 }; // red
+            bulletChar = "⚠";
+          } else if (rec.type === "info") {
+            bulletColor = { r: 56/255, g: 189/255, b: 248/255 }; // blue
+            bulletChar = "ℹ";
+          }
+          bullet.fills = [{ type: "SOLID", color: bulletColor }];
+          bullet.characters = bulletChar;
+          recRow.appendChild(bullet);
+
+          const text = figma.createText();
+          text.fontName = defaultFont;
+          text.fontSize = 9;
+          text.fills = [{ type: "SOLID", color: { r: 209/255, g: 213/255, b: 219/255 } }];
+          text.characters = rec.text;
+          text.textAutoResize = "HEIGHT";
+          text.layoutGrow = 1;
+          recRow.appendChild(text);
+
+          recSection.appendChild(recRow);
+        }
+
+        card.appendChild(recSection);
+        parent.appendChild(card);
+      }
 
       // SECTION A: HEADER BANNER (Slate 900 / Themed)
       const headerFrame = figma.createFrame();
@@ -842,6 +1116,35 @@ figma.ui.onmessage = async (msg) => {
         logoFrame.appendChild(logoRow);
         pageWrapper.appendChild(logoFrame);
       }
+
+      // SECTION G: DESIGN SYSTEM COMPLIANCE & QA AUDIT (Slate 900 / Themed)
+      const qaFrame = figma.createFrame();
+      qaFrame.name = "Design System Compliance & QA Audit";
+      qaFrame.layoutMode = "VERTICAL";
+      qaFrame.resize(1200, 10);
+      qaFrame.counterAxisSizingMode = "FIXED";
+      qaFrame.primaryAxisSizingMode = "AUTO";
+      qaFrame.layoutAlign = "STRETCH";
+      qaFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
+      qaFrame.cornerRadius = 16;
+      qaFrame.paddingLeft = 40;
+      qaFrame.paddingRight = 40;
+      qaFrame.paddingTop = 40;
+      qaFrame.paddingBottom = 40;
+      qaFrame.itemSpacing = 24;
+
+      const qaHeader = figma.createText();
+      qaHeader.fontName = boldFont;
+      qaHeader.fontSize = 24;
+      qaHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+      qaHeader.characters = "Design System Compliance & QA Audit";
+      qaHeader.textAutoResize = "HEIGHT";
+      qaHeader.layoutAlign = "STRETCH";
+      qaFrame.appendChild(qaHeader);
+
+      // Draw QA Health Audit Card inside this dedicated section
+      await drawHealthAuditCard(qaFrame);
+      pageWrapper.appendChild(qaFrame);
 
       // SECTION B1: BRANDING COLORS (Themed)
       if (brandColorsList.length > 0) {
@@ -1362,10 +1665,7 @@ figma.ui.onmessage = async (msg) => {
           parent.appendChild(gridFrame);
         }
 
-      let designQualityScore = 100;
-      let autoLayoutRate = 100;
-      let spacingConsistency = 100;
-      let qaRecommendations: Array<{ type: "warning" | "info" | "success"; text: string }> = [];
+
       const hasComponents = representativeButtons.length > 0 || representativeInputs.length > 0 || representativeCards.length > 0;
 
       // SECTION C2: RESPONSIVE GRID GUIDELINES (Slate 900)
@@ -1682,282 +1982,7 @@ figma.ui.onmessage = async (msg) => {
           parent.appendChild(card);
         };
 
-        // --- 8. QA HEALTH AUDIT COMPUTATION ---
-        const allScannedComponents = [...detectedButtons, ...detectedInputs, ...detectedCards];
-        const totalComponentsScanned = allScannedComponents.length;
-        let totalAutoLayoutScanned = 0;
-        const nonAutoLayoutNames: string[] = [];
 
-        allScannedComponents.forEach(node => {
-          const isAL = (node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE") && (node as FrameNode).layoutMode !== "NONE";
-          if (isAL) {
-            totalAutoLayoutScanned++;
-          } else {
-            nonAutoLayoutNames.push(node.name);
-          }
-        });
-
-        autoLayoutRate = totalComponentsScanned > 0 ? Math.round((totalAutoLayoutScanned / totalComponentsScanned) * 100) : 100;
-
-        let consistentSpacingCount = 0;
-        let totalSpacingCount = 0;
-        Object.keys(spacingValues).forEach(sValStr => {
-          const sVal = parseInt(sValStr);
-          if (!isNaN(sVal)) {
-            totalSpacingCount++;
-            if (sVal % 4 === 0) {
-              consistentSpacingCount++;
-            }
-          }
-        });
-        spacingConsistency = totalSpacingCount > 0 ? Math.round((consistentSpacingCount / totalSpacingCount) * 100) : 100;
-        const colorTokenCoverage = 100;
-
-        designQualityScore = Math.round((autoLayoutRate * 0.6) + (spacingConsistency * 0.4));
-
-        qaRecommendations = [];
-        if (autoLayoutRate < 100) {
-          qaRecommendations.push({
-            type: "warning",
-            text: `Auto Layout: ${totalComponentsScanned - totalAutoLayoutScanned} layers are missing Auto Layout. Absolute positions prevent responsiveness.`
-          });
-          nonAutoLayoutNames.slice(0, 3).forEach(name => {
-            qaRecommendations.push({
-              type: "info",
-              text: `↳ Recommendation: Wrap "${name}" in an Auto Layout Frame.`
-            });
-          });
-        } else {
-          qaRecommendations.push({
-            type: "success",
-            text: "Auto Layout Compliance: 100% of components utilize responsive Auto Layout."
-          });
-        }
-
-        if (spacingConsistency < 80) {
-          qaRecommendations.push({
-            type: "warning",
-            text: `Spacing Grid: Consistency is ${spacingConsistency}%. Align margins & gaps to a 4px/8px grid scale.`
-          });
-        } else {
-          qaRecommendations.push({
-            type: "success",
-            text: "Spacing Grid Consistency: Standard 4px/8px spacing grids are fully respected."
-          });
-        }
-
-        if (representativeLogos.length === 0) {
-          qaRecommendations.push({
-            type: "info",
-            text: "Asset Audit: No brand logo nodes were identified. Tag logo frames with 'logo' in their layers."
-          });
-        }
-
-        // Helper to draw the QA Health Audit dashboard card on canvas
-        async function drawHealthAuditCard(parent: FrameNode) {
-          const card = figma.createFrame();
-          card.name = "Design System QA Health Audit";
-          card.layoutMode = "VERTICAL";
-          card.resize(1120, 100);
-          card.counterAxisSizingMode = "FIXED";
-          card.primaryAxisSizingMode = "AUTO";
-          card.layoutAlign = "STRETCH";
-          card.fills = [{ type: "SOLID", color: theme.cardBg }];
-          card.cornerRadius = 16;
-          card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
-          card.strokeWeight = 1.5;
-          card.paddingLeft = 24;
-          card.paddingRight = 24;
-          card.paddingTop = 24;
-          card.paddingBottom = 24;
-          card.itemSpacing = 20;
-
-          // Top Row: Title & Score
-          const topRow = figma.createFrame();
-          topRow.name = "Header Row";
-          topRow.layoutMode = "HORIZONTAL";
-          topRow.primaryAxisSizingMode = "AUTO";
-          topRow.counterAxisSizingMode = "AUTO";
-          topRow.itemSpacing = 20;
-          topRow.fills = [];
-          topRow.layoutAlign = "STRETCH";
-          topRow.counterAxisAlignItems = "CENTER";
-
-          const titleText = figma.createText();
-          titleText.fontName = boldFont;
-          titleText.fontSize = 18;
-          titleText.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-          titleText.characters = "Design System Compliance & QA Audit";
-          topRow.appendChild(titleText);
-
-          const spacerNode = figma.createFrame();
-          spacerNode.layoutGrow = 1;
-          spacerNode.fills = [];
-          topRow.appendChild(spacerNode);
-
-          // Score Badge
-          const scoreBadge = figma.createFrame();
-          scoreBadge.layoutMode = "HORIZONTAL";
-          scoreBadge.paddingLeft = 14;
-          scoreBadge.paddingRight = 14;
-          scoreBadge.paddingTop = 6;
-          scoreBadge.paddingBottom = 6;
-          scoreBadge.cornerRadius = 24;
-          
-          let scoreBgColor = { r: 16/255, g: 185/255, b: 129/255 }; // Green 500
-          let scoreTxtColor = { r: 52/255, g: 211/255, b: 153/255 }; // Green 400
-          if (designQualityScore < 70) {
-            scoreBgColor = { r: 239/255, g: 68/255, b: 68/255 }; // Red 500
-            scoreTxtColor = { r: 248/255, g: 113/255, b: 113/255 };
-          } else if (designQualityScore < 90) {
-            scoreBgColor = { r: 245/255, g: 158/255, b: 11/255 }; // Amber 500
-            scoreTxtColor = { r: 251/255, g: 191/255, b: 36/255 };
-          }
-          scoreBadge.fills = [{ type: "SOLID", color: scoreBgColor, opacity: 0.15 }];
-          scoreBadge.strokes = [{ type: "SOLID", color: scoreBgColor }];
-          scoreBadge.strokeWeight = 1;
-
-          const scoreText = figma.createText();
-          scoreText.fontName = boldFont;
-          scoreText.fontSize = 13;
-          scoreText.fills = [{ type: "SOLID", color: scoreTxtColor }];
-          scoreText.characters = `HEALTH SCORE: ${designQualityScore}%`;
-          scoreBadge.appendChild(scoreText);
-          topRow.appendChild(scoreBadge);
-          
-          card.appendChild(topRow);
-
-          // Grid Container of Scores
-          const grid = figma.createFrame();
-          grid.name = "Audit Cards Grid";
-          grid.layoutMode = "HORIZONTAL";
-          grid.primaryAxisSizingMode = "AUTO";
-          grid.counterAxisSizingMode = "AUTO";
-          grid.itemSpacing = 20;
-          grid.fills = [];
-          grid.layoutAlign = "STRETCH";
-
-          const addAuditMetricCard = (label: string, value: string, desc: string, isOk: boolean) => {
-            const mCard = figma.createFrame();
-            mCard.name = `${label} Metric`;
-            mCard.layoutMode = "VERTICAL";
-            mCard.resize(344, 10);
-            mCard.counterAxisSizingMode = "FIXED";
-            mCard.primaryAxisSizingMode = "AUTO";
-            mCard.fills = [{ type: "SOLID", color: { r: 15/255, g: 23/255, b: 42/255 } }];
-            mCard.cornerRadius = 8;
-            mCard.strokes = [{ type: "SOLID", color: { r: 30/255, g: 41/255, b: 59/255 } }];
-            mCard.strokeWeight = 1;
-            mCard.paddingLeft = 14;
-            mCard.paddingRight = 14;
-            mCard.paddingTop = 12;
-            mCard.paddingBottom = 12;
-            mCard.itemSpacing = 4;
-
-            const mLabel = figma.createText();
-            mLabel.fontName = boldFont;
-            mLabel.fontSize = 9;
-            mLabel.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
-            mLabel.characters = label;
-            mLabel.textAutoResize = "HEIGHT";
-            mLabel.layoutAlign = "STRETCH";
-            mCard.appendChild(mLabel);
-
-            const mValue = figma.createText();
-            mValue.fontName = boldFont;
-            mValue.fontSize = 24;
-            mValue.fills = [{ type: "SOLID", color: isOk ? { r: 52/255, g: 211/255, b: 153/255 } : { r: 251/255, g: 191/255, b: 36/255 } }];
-            mValue.characters = value;
-            mValue.textAutoResize = "HEIGHT";
-            mValue.layoutAlign = "STRETCH";
-            mCard.appendChild(mValue);
-
-            const mDesc = figma.createText();
-            mDesc.fontName = defaultFont;
-            mDesc.fontSize = 8;
-            mDesc.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
-            mDesc.characters = desc;
-            mDesc.textAutoResize = "HEIGHT";
-            mDesc.layoutAlign = "STRETCH";
-            mCard.appendChild(mDesc);
-
-            grid.appendChild(mCard);
-          };
-
-          addAuditMetricCard("AUTO LAYOUT COMPLIANCE", `${autoLayoutRate}%`, `Measures how many scanned components adopt Figma Auto Layout instead of fixed sizes.`, autoLayoutRate >= 90);
-          addAuditMetricCard("SPACING CONSISTENCY", `${spacingConsistency}%`, `Audits alignment of internal margins and item spacings to standard 4px/8px scales.`, spacingConsistency >= 80);
-          addAuditMetricCard("VARIABLE TOKENIZATION", `${colorTokenCoverage}%`, `Evaluates if all design system colors map to registered variable naming conventions.`, true);
-
-          card.appendChild(grid);
-
-          // Divider
-          const divider = figma.createFrame();
-          divider.resize(1072, 0.5);
-          divider.fills = [{ type: "SOLID", color: { r: 51/255, g: 65/255, b: 85/255 } }];
-          divider.layoutAlign = "STRETCH";
-          card.appendChild(divider);
-
-          // Recommendations List
-          const recSection = figma.createFrame();
-          recSection.name = "Recommendations Section";
-          recSection.layoutMode = "VERTICAL";
-          recSection.primaryAxisSizingMode = "AUTO";
-          recSection.counterAxisSizingMode = "AUTO";
-          recSection.itemSpacing = 8;
-          recSection.fills = [];
-          recSection.layoutAlign = "STRETCH";
-
-          const recTitle = figma.createText();
-          recTitle.fontName = boldFont;
-          recTitle.fontSize = 11;
-          recTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
-          recTitle.characters = "AUTOMATED RECTIFICATION GUIDE";
-          recTitle.textAutoResize = "HEIGHT";
-          recTitle.layoutAlign = "STRETCH";
-          recSection.appendChild(recTitle);
-
-          for (const rec of qaRecommendations) {
-            const recRow = figma.createFrame();
-            recRow.layoutMode = "HORIZONTAL";
-            recRow.primaryAxisSizingMode = "AUTO";
-            recRow.counterAxisSizingMode = "AUTO";
-            recRow.itemSpacing = 8;
-            recRow.fills = [];
-            recRow.layoutAlign = "STRETCH";
-
-            const bullet = figma.createText();
-            bullet.fontName = boldFont;
-            bullet.fontSize = 10;
-            let bulletColor = { r: 16/255, g: 185/255, b: 129/255 }; // green
-            let bulletChar = "✓";
-            if (rec.type === "warning") {
-              bulletColor = { r: 239/255, g: 68/255, b: 68/255 }; // red
-              bulletChar = "⚠";
-            } else if (rec.type === "info") {
-              bulletColor = { r: 56/255, g: 189/255, b: 248/255 }; // blue
-              bulletChar = "ℹ";
-            }
-            bullet.fills = [{ type: "SOLID", color: bulletColor }];
-            bullet.characters = bulletChar;
-            recRow.appendChild(bullet);
-
-            const text = figma.createText();
-            text.fontName = defaultFont;
-            text.fontSize = 9;
-            text.fills = [{ type: "SOLID", color: { r: 209/255, g: 213/255, b: 219/255 } }];
-            text.characters = rec.text;
-            text.textAutoResize = "HEIGHT";
-            text.layoutGrow = 1;
-            recRow.appendChild(text);
-
-            recSection.appendChild(recRow);
-          }
-
-          card.appendChild(recSection);
-          parent.appendChild(card);
-        };
-
-;
 
         // --- SECTION RENDERING IMPLEMENTATIONS ---
 
@@ -1985,8 +2010,7 @@ figma.ui.onmessage = async (msg) => {
         compHeader.layoutAlign = "STRETCH";
         compFrame.appendChild(compHeader);
 
-        // Draw QA Health Audit Card on canvas
-        await drawHealthAuditCard(compFrame);
+
 
         // Sub-helper function to create visual section for each component type
         const renderComponentCategoryRaw = async (title: string, list: SceneNode[]) => {
