@@ -371,11 +371,17 @@ figma.ui.onmessage = async (msg) => {
       
       const detectedButtons: SceneNode[] = [];
       const detectedInputs: SceneNode[] = [];
-      const detectedCards: SceneNode[] = [];
-      const detectedNavs: SceneNode[] = [];
+      const detectedDataDisplays: SceneNode[] = [];
+      const detectedNavigations: SceneNode[] = [];
       const detectedFeedbacks: SceneNode[] = [];
-      const detectedAIs: SceneNode[] = [];
       const detectedLayouts: SceneNode[] = [];
+      const detectedUsers: SceneNode[] = [];
+      const detectedEcommerces: SceneNode[] = [];
+      const detectedMobiles: SceneNode[] = [];
+      const detectedAIs: SceneNode[] = [];
+      const detectedContents: SceneNode[] = [];
+      const detectedAuthentications: SceneNode[] = [];
+      const detectedDashboards: SceneNode[] = [];
       const representativeImages: SceneNode[] = [];
       const representativeIcons: SceneNode[] = [];
       const representativeLogos: SceneNode[] = [];
@@ -503,24 +509,36 @@ figma.ui.onmessage = async (msg) => {
 
           const names = await getAssociatedNames(node);
 
-          const matchesButtonName = names.some(n => /(?:^|[-_\s/])(button|buttons|btn|fab|floating-action|link)(?:[-_\s/]|$)/i.test(n));
-          const matchesInputName = names.some(n => /(?:^|[-_\s/])(input|inputs|textarea|text-area|select|dropdown|combobox|checkbox|radio|switch|toggle|slider|picker|upload|stepper|otp|rating)(?:[-_\s/]|$)/i.test(n));
-          const matchesCardName = names.some(n => /(?:^|[-_\s/])(card|cards|table|grid|list|tree|badge|chip|tag|avatar|tooltip|popover|accordion|timeline|calendar|carousel|progress|skeleton|divider|chart|graph)(?:[-_\s/]|$)/i.test(n));
-          const matchesNavName = names.some(n => /(?:^|[-_\s/])(navbar|nav|sidebar|drawer|menu|breadcrumb|tab|pagination|bottom-nav)(?:[-_\s/]|$)/i.test(n));
-          const matchesFeedbackName = names.some(n => /(?:^|[-_\s/])(alert|banner|toast|snackbar|notification|modal|dialog|popup|spinner|loader)(?:[-_\s/]|$)/i.test(n));
-          const matchesAIName = names.some(n => /(?:^|[-_\s/])(chat|bubble|prompt|message|bot)(?:[-_\s/]|$)/i.test(n));
-          const matchesLayoutName = names.some(n => /(?:^|[-_\s/])(container|section|row|column|stack|spacer|header|footer|hero)(?:[-_\s/]|$)/i.test(n));
+          const matchesAI = names.some(n => /(?:^|[-_\s/])(chat|bubble|prompt|message|bot|typing-indicator)(?:[-_\s/]|$)/i.test(n));
+          const matchesAuth = names.some(n => /(?:^|[-_\s/])(login|signup|forgot-password|reset-password|oauth)(?:[-_\s/]|$)/i.test(n));
+          const matchesEcommerce = names.some(n => /(?:^|[-_\s/])(product|pricing|cart|checkout|payment|billing|shipping|order)(?:[-_\s/]|$)/i.test(n));
+          const matchesUser = names.some(n => /(?:^|[-_\s/])(profile|user-card|user-dropdown|avatar-group)(?:[-_\s/]|$)/i.test(n));
+          const matchesMobile = names.some(n => /(?:^|[-_\s/])(bottom-sheet|bottom-nav|mobile-bar|swipeable)(?:[-_\s/]|$)/i.test(n));
+          const matchesDashboard = names.some(n => /(?:^|[-_\s/])(kpi|analytics|widget|dashboard)(?:[-_\s/]|$)/i.test(n));
+          const matchesContent = names.some(n => /(?:^|[-_\s/])(editor|code-block|blockquote|rich-text)(?:[-_\s/]|$)/i.test(n));
+          const matchesFeedback = names.some(n => /(?:^|[-_\s/])(alert|banner|toast|snackbar|notification|modal|dialog|popup|spinner|loader|coachmark)(?:[-_\s/]|$)/i.test(n));
+          const matchesNavigation = names.some(n => /(?:^|[-_\s/])(navbar|nav|sidebar|drawer|menu|breadcrumb|tab|pagination|steps|wizard)(?:[-_\s/]|$)/i.test(n));
+          const matchesButton = names.some(n => /(?:^|[-_\s/])(button|buttons|btn|fab|floating-action|link)(?:[-_\s/]|$)/i.test(n));
+          const matchesInput = names.some(n => /(?:^|[-_\s/])(input|inputs|textarea|text-area|select|dropdown|combobox|checkbox|radio|switch|toggle|slider|range|picker|upload|otp|signature|rating|stepper-input)(?:[-_\s/]|$)/i.test(n));
+          const matchesLayout = names.some(n => /(?:^|[-_\s/])(container|section|row|column|stack|spacer|divider|splitter|box|flex)(?:[-_\s/]|$)/i.test(n));
+          const matchesDataDisplay = names.some(n => /(?:^|[-_\s/])(table|grid|list|tree|card|stat|badge|chip|tag|avatar|tooltip|popover|accordion|timeline|calendar|carousel|progress|skeleton|divider|qr|chart|graph|plot)(?:[-_\s/]|$)/i.test(n));
 
+          let isAI = false;
+          let isAuth = false;
+          let isEcommerce = false;
+          let isUser = false;
+          let isMobile = false;
+          let isDashboard = false;
+          let isContent = false;
+          let isFeedback = false;
+          let isNavigation = false;
           let isButton = false;
           let isInput = false;
-          let isCard = false;
-          let isNav = false;
-          let isFeedback = false;
-          let isAI = false;
           let isLayout = false;
+          let isDataDisplay = false;
 
-          // 1. Buttons & Actions Heuristics
-          if (matchesButtonName) {
+          // 1. Buttons Heuristics
+          if (matchesButton) {
             isButton = true;
           } else if (w >= 60 && w <= 320 && h >= 24 && h <= 64) {
             const aspect = w / h;
@@ -536,86 +554,110 @@ figma.ui.onmessage = async (msg) => {
             }
           }
 
-          // 2. Inputs & Forms Heuristics
+          // 2. Inputs Heuristics
           if (!isButton) {
-            if (matchesInputName) {
+            if (matchesInput) {
               isInput = true;
-            } else {
-              const isRegularInputGeom = w >= 120 && w <= 500 && h >= 32 && h <= 60 && (w / h >= 3.0 && w / h <= 10.0);
-              const isTextareaGeom = w >= 120 && w <= 500 && h >= 60 && h <= 200 && (w / h >= 1.0 && w / h <= 4.0);
-              const isCheckboxRadioGeom = w >= 14 && w <= 28 && h >= 14 && h <= 28 && (w / h >= 0.8 && w / h <= 1.2);
-              const isSwitchGeom = w >= 32 && w <= 60 && h >= 16 && h <= 36 && (w / h >= 1.5 && w / h <= 2.5);
-
-              if (isRegularInputGeom || isTextareaGeom) {
-                const hasStroke = "strokes" in node && (node.strokes as any) !== figma.mixed && Array.isArray(node.strokes) && node.strokes.length > 0;
-                const hasFill = "fills" in node && (node.fills as any) !== figma.mixed && Array.isArray(node.fills) && node.fills.length > 0;
+            } else if (w >= 100 && w <= 600 && h >= 28 && h <= 80) {
+              const hasStroke = "strokes" in node && (node.strokes as any) !== figma.mixed && Array.isArray(node.strokes) && node.strokes.length > 0;
+              const hasFill = "fills" in node && (node.fills as any) !== figma.mixed && Array.isArray(node.fills) && node.fills.length > 0;
+              if (hasStroke || hasFill) {
                 const textChildren: TextNode[] = [];
                 findTextNodes(node, textChildren);
-                if (textChildren.length > 0 && (hasStroke || hasFill)) {
-                  const labelText = textChildren[0].characters.trim();
-                  if (labelText.length > 0 && labelText.length < 40) {
-                    isInput = true;
-                  }
-                }
-              } else if (isCheckboxRadioGeom || isSwitchGeom) {
-                const textChildren: TextNode[] = [];
-                findTextNodes(node, textChildren);
-                if (textChildren.length <= 1) {
+                if (textChildren.length >= 1 && textChildren.length <= 3) {
                   isInput = true;
                 }
               }
             }
           }
 
-          // 3. Navigation & Shell Heuristics
+          // 3. AI & Chat Heuristics
           if (!isButton && !isInput) {
-            if (matchesNavName) {
-              isNav = true;
-            } else {
-              const isNavbarGeom = w >= 300 && h >= 36 && h <= 80;
-              const isSidebarGeom = w >= 60 && w <= 300 && h >= 300;
-              if (isNavbarGeom || isSidebarGeom) {
-                isNav = true;
-              }
-            }
-          }
-
-          // 4. Feedback & Overlays Heuristics
-          if (!isButton && !isInput && !isNav) {
-            if (matchesFeedbackName) {
-              isFeedback = true;
-            } else {
-              const isModalGeom = w >= 280 && w <= 640 && h >= 140 && h <= 480;
-              const isAlertGeom = w >= 300 && h >= 40 && h <= 120;
-              if (isModalGeom || isAlertGeom) {
-                const textChildren: TextNode[] = [];
-                findTextNodes(node, textChildren);
-                if (textChildren.length >= 1) {
-                  isFeedback = true;
-                }
-              }
-            }
-          }
-
-          // 5. AI & Messaging Heuristics
-          if (!isButton && !isInput && !isNav && !isFeedback) {
-            if (matchesAIName) {
+            if (matchesAI) {
               isAI = true;
-            } else {
-              const isChatBubbleGeom = w >= 80 && w <= 400 && h >= 32 && h <= 200;
-              if (isChatBubbleGeom) {
-                const textChildren: TextNode[] = [];
-                findTextNodes(node, textChildren);
-                if (textChildren.length >= 1 && textChildren.length <= 4) {
-                  isAI = true;
-                }
+            } else if (w >= 80 && w <= 400 && h >= 32 && h <= 200) {
+              const textChildren: TextNode[] = [];
+              findTextNodes(node, textChildren);
+              if (textChildren.length >= 1 && textChildren.length <= 4) {
+                const hasBubbleName = node.name.toLowerCase().includes("bubble") || node.name.toLowerCase().includes("msg");
+                if (hasBubbleName) isAI = true;
               }
             }
           }
 
-          // 6. Layout & Page Structure Heuristics
-          if (!isButton && !isInput && !isNav && !isFeedback && !isAI) {
-            if (matchesLayoutName) {
+          // 4. Auth Heuristics
+          if (!isButton && !isInput && !isAI) {
+            if (matchesAuth) {
+              isAuth = true;
+            }
+          }
+
+          // 5. Ecommerce Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth) {
+            if (matchesEcommerce) {
+              isEcommerce = true;
+            }
+          }
+
+          // 6. User Profiles Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce) {
+            if (matchesUser) {
+              isUser = true;
+            }
+          }
+
+          // 7. Mobile Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce && !isUser) {
+            if (matchesMobile) {
+              isMobile = true;
+            }
+          }
+
+          // 8. Dashboard Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce && !isUser && !isMobile) {
+            if (matchesDashboard) {
+              isDashboard = true;
+            }
+          }
+
+          // 9. Content Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce && !isUser && !isMobile && !isDashboard) {
+            if (matchesContent) {
+              isContent = true;
+            }
+          }
+
+          // 10. Feedback Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce && !isUser && !isMobile && !isDashboard && !isContent) {
+            if (matchesFeedback) {
+              isFeedback = true;
+            } else if (w >= 280 && w <= 640 && h >= 140 && h <= 480) {
+              const textChildren: TextNode[] = [];
+              findTextNodes(node, textChildren);
+              if (textChildren.length >= 2) {
+                const hasOverlayName = node.name.toLowerCase().includes("modal") || node.name.toLowerCase().includes("dialog") || node.name.toLowerCase().includes("popup");
+                if (hasOverlayName) isFeedback = true;
+              }
+            }
+          }
+
+          // 11. Navigation Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce && !isUser && !isMobile && !isDashboard && !isContent && !isFeedback) {
+            if (matchesNavigation) {
+              isNavigation = true;
+            } else {
+              const isHorizontalNavBar = w >= 300 && h >= 36 && h <= 80;
+              const isVerticalSideBar = w >= 60 && w <= 300 && h >= 300;
+              if (isHorizontalNavBar || isVerticalSideBar) {
+                const hasNavName = node.name.toLowerCase().includes("nav") || node.name.toLowerCase().includes("menu") || node.name.toLowerCase().includes("sidebar");
+                if (hasNavName) isNavigation = true;
+              }
+            }
+          }
+
+          // 12. Layout Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce && !isUser && !isMobile && !isDashboard && !isContent && !isFeedback && !isNavigation) {
+            if (matchesLayout) {
               isLayout = true;
             } else {
               const isDividerGeom = (w >= 300 && h <= 8) || (h >= 300 && w <= 8);
@@ -625,30 +667,28 @@ figma.ui.onmessage = async (msg) => {
             }
           }
 
-          // 7. Data Display & Cards Heuristics
-          if (!isButton && !isInput && !isNav && !isFeedback && !isAI && !isLayout) {
-            if (matchesCardName) {
-              isCard = true;
+          // 13. Data Display Heuristics
+          if (!isButton && !isInput && !isAI && !isAuth && !isEcommerce && !isUser && !isMobile && !isDashboard && !isContent && !isFeedback && !isNavigation && !isLayout) {
+            if (matchesDataDisplay) {
+              isDataDisplay = true;
             } else if (w >= 180 && w <= 500 && h >= 120 && h <= 600) {
               const textChildren: TextNode[] = [];
               findTextNodes(node, textChildren);
               const visualChildren: SceneNode[] = [];
               findVisualNodes(node, visualChildren);
               if (textChildren.length >= 2 && visualChildren.length >= 1) {
-                isCard = true;
+                isDataDisplay = true;
               }
             } else if ((node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE") && node.layoutMode === "VERTICAL" && node.children.length >= 3) {
-              // List layout heuristic
               const heights = node.children.map(c => Math.round(c.height));
               const firstH = heights[0];
               const isConsistentHeight = heights.every(h => Math.abs(h - firstH) <= 2) && firstH >= 24 && firstH <= 80;
               if (isConsistentHeight) {
-                isCard = true;
+                isDataDisplay = true;
               } else {
-                // Table layout heuristic
                 const firstChild = node.children[0];
                 if (firstChild.type === "FRAME" && firstChild.layoutMode === "HORIZONTAL" && firstChild.children.length >= 3) {
-                  isCard = true;
+                  isDataDisplay = true;
                 }
               }
             }
@@ -657,18 +697,31 @@ figma.ui.onmessage = async (msg) => {
           // Save matched nodes
           if (isButton) {
             detectedButtons.push(node);
-          } else if (isInput) {
+          }
+          if (isInput) {
             detectedInputs.push(node);
-          } else if (isNav) {
-            detectedNavs.push(node);
+          } else if (isDataDisplay) {
+            detectedDataDisplays.push(node);
+          } else if (isNavigation) {
+            detectedNavigations.push(node);
           } else if (isFeedback) {
             detectedFeedbacks.push(node);
-          } else if (isAI) {
-            detectedAIs.push(node);
           } else if (isLayout) {
             detectedLayouts.push(node);
-          } else if (isCard) {
-            detectedCards.push(node);
+          } else if (isUser) {
+            detectedUsers.push(node);
+          } else if (isEcommerce) {
+            detectedEcommerces.push(node);
+          } else if (isMobile) {
+            detectedMobiles.push(node);
+          } else if (isAI) {
+            detectedAIs.push(node);
+          } else if (isContent) {
+            detectedContents.push(node);
+          } else if (isAuth) {
+            detectedAuthentications.push(node);
+          } else if (isDashboard) {
+            detectedDashboards.push(node);
           }
         }
 
@@ -783,11 +836,17 @@ figma.ui.onmessage = async (msg) => {
 
       const representativeButtons = getRepresentatives(detectedButtons, 4);
       const representativeInputs = getRepresentatives(detectedInputs, 4);
-      const representativeCards = getRepresentatives(detectedCards, 4);
-      const representativeNavs = getRepresentatives(detectedNavs, 4);
+      const representativeDataDisplays = getRepresentatives(detectedDataDisplays, 4);
+      const representativeNavigations = getRepresentatives(detectedNavigations, 4);
       const representativeFeedbacks = getRepresentatives(detectedFeedbacks, 4);
-      const representativeAIs = getRepresentatives(detectedAIs, 4);
       const representativeLayouts = getRepresentatives(detectedLayouts, 4);
+      const representativeUsers = getRepresentatives(detectedUsers, 4);
+      const representativeEcommerces = getRepresentatives(detectedEcommerces, 4);
+      const representativeMobiles = getRepresentatives(detectedMobiles, 4);
+      const representativeAIs = getRepresentatives(detectedAIs, 4);
+      const representativeContents = getRepresentatives(detectedContents, 4);
+      const representativeAuthentications = getRepresentatives(detectedAuthentications, 4);
+      const representativeDashboards = getRepresentatives(detectedDashboards, 4);
 
       // 5. Notify UI of layout builder phase
       figma.ui.postMessage({
@@ -853,7 +912,12 @@ figma.ui.onmessage = async (msg) => {
       const primaryBrand = brandColorsList.length > 0 ? brandColorsList[0][1] : undefined;
       const theme = deriveTheme(primaryBrand);
 
-      const allScannedComponents = [...detectedButtons, ...detectedInputs, ...detectedCards, ...detectedNavs, ...detectedFeedbacks, ...detectedAIs, ...detectedLayouts];
+      const allScannedComponents = [
+        ...detectedButtons, ...detectedInputs, ...detectedDataDisplays, ...detectedNavigations, 
+        ...detectedFeedbacks, ...detectedLayouts, ...detectedUsers, ...detectedEcommerces, 
+        ...detectedMobiles, ...detectedAIs, ...detectedContents, ...detectedAuthentications, 
+        ...detectedDashboards
+      ];
       const totalComponentsScanned = allScannedComponents.length;
       let totalAutoLayoutScanned = 0;
       const nonAutoLayoutNames: string[] = [];
@@ -923,52 +987,87 @@ figma.ui.onmessage = async (msg) => {
         });
       }
 
-      if (representativeButtons.length === 0) {
+      if (representativeButtons.length === 0 && representativeInputs.length === 0) {
         qaRecommendations.push({
           type: "info",
-          text: "Buttons & Actions Audit: No buttons or actions found. Tag components with 'button', 'btn', 'fab', or 'link' keywords."
+          text: "Inputs & Forms Audit: No forms or buttons found. Tag input elements with 'button', 'input', 'textarea', 'dropdown', 'checkbox', 'radio', or 'switch' keywords."
         });
       }
 
-      if (representativeInputs.length === 0) {
+      if (representativeDataDisplays.length === 0) {
         qaRecommendations.push({
           type: "info",
-          text: "Inputs & Forms Audit: No input fields found. Tag form elements with 'input', 'textarea', 'dropdown', 'checkbox', 'radio', 'switch', 'slider', or 'picker' keywords."
+          text: "Data Display Audit: No tables or data cards found. Tag structures with 'table', 'grid', 'list', 'badge', 'chip', 'avatar', or 'tooltip' keywords."
         });
       }
 
-      if (representativeCards.length === 0) {
+      if (representativeNavigations.length === 0) {
         qaRecommendations.push({
           type: "info",
-          text: "Data Display & Cards Audit: No display cards, lists or tables found. Tag display structures with 'card', 'table', 'grid', 'list', 'badge', 'chip', 'avatar', or 'accordion' keywords."
-        });
-      }
-
-      if (representativeNavs.length === 0) {
-        qaRecommendations.push({
-          type: "info",
-          text: "Navigation Audit: No navigation components found. Tag navigation elements with 'navbar', 'nav', 'sidebar', 'drawer', 'menu', 'tabs', or 'pagination' keywords."
+          text: "Navigation Audit: No navigation components found. Tag navigation elements with 'navbar', 'nav', 'sidebar', 'drawer', 'menu', or 'tabs' keywords."
         });
       }
 
       if (representativeFeedbacks.length === 0) {
         qaRecommendations.push({
           type: "info",
-          text: "Feedback Audit: No feedback panels found. Tag alerts or feedback overlays with 'alert', 'toast', 'notification', 'modal', or 'dialog' keywords."
-        });
-      }
-
-      if (representativeAIs.length === 0) {
-        qaRecommendations.push({
-          type: "info",
-          text: "AI & Messaging Audit: No chat or messaging components found. Tag chat elements with 'chat', 'bubble', 'prompt', or 'message' keywords."
+          text: "Feedback Audit: No feedback panels found. Tag alert or overlay layers with 'alert', 'toast', 'notification', 'modal', or 'dialog' keywords."
         });
       }
 
       if (representativeLayouts.length === 0) {
         qaRecommendations.push({
           type: "info",
-          text: "Layout Audit: No structural layouts found. Tag structural components with 'container', 'section', 'row', 'column', 'stack', 'header', or 'footer' keywords."
+          text: "Layout Audit: No structural layouts found. Tag structural frames with 'container', 'section', 'row', 'column', or 'stack' keywords."
+        });
+      }
+
+      if (representativeUsers.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "User Profiles Audit: No profile or user cards found. Tag identity elements with 'profile', 'user-card', or 'avatar-group' keywords."
+        });
+      }
+
+      if (representativeEcommerces.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "E-commerce Audit: No shopping or pricing widgets found. Tag transaction elements with 'product', 'pricing', 'cart', or 'checkout' keywords."
+        });
+      }
+
+      if (representativeMobiles.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Mobile-Specific Audit: No mobile layout items found. Tag mobile-specific frames with 'bottom-sheet', 'bottom-nav', or 'swipeable' keywords."
+        });
+      }
+
+      if (representativeAIs.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "AI & Chat Audit: No conversational views found. Tag chat layers with 'chat', 'bubble', 'prompt', or 'message' keywords."
+        });
+      }
+
+      if (representativeContents.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Content & Text Audit: No rich text editors or code blocks found. Tag content containers with 'editor', 'code-block', or 'rich-text' keywords."
+        });
+      }
+
+      if (representativeAuthentications.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Authentication Audit: No login or gateway forms found. Tag auth blocks with 'login', 'signup', 'forgot-password', or 'oauth' keywords."
+        });
+      }
+
+      if (representativeDashboards.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Dashboard Audit: No KPI cards or widgets found. Tag analytics frames with 'kpi', 'analytics', or 'widget' keywords."
         });
       }
 
@@ -2375,7 +2474,14 @@ figma.ui.onmessage = async (msg) => {
         }
 
 
-      const hasComponents = representativeButtons.length > 0 || representativeInputs.length > 0 || representativeCards.length > 0 || representativeNavs.length > 0 || representativeFeedbacks.length > 0 || representativeAIs.length > 0 || representativeLayouts.length > 0;
+      const hasComponents = 
+        representativeInputs.length > 0 || representativeDataDisplays.length > 0 || 
+        representativeNavigations.length > 0 || representativeFeedbacks.length > 0 || 
+        representativeLayouts.length > 0 || representativeUsers.length > 0 || 
+        representativeEcommerces.length > 0 || representativeMobiles.length > 0 || 
+        representativeAIs.length > 0 || representativeContents.length > 0 || 
+        representativeAuthentications.length > 0 || representativeDashboards.length > 0 ||
+        representativeButtons.length > 0;
 
       // SECTION C2: RESPONSIVE GRID GUIDELINES (Slate 900)
       if (hasComponents) {
@@ -2780,16 +2886,28 @@ figma.ui.onmessage = async (msg) => {
             descText = "Buttons allow users to take actions and make choices with a single tap. Commonly used in forms, dialogs, and toolbars.";
           } else if (title === "Inputs & Forms") {
             descText = "Text fields, select dropdowns, toggles, checkboxes, and date pickers let users enter, edit, and select data in forms and dialogs.";
-          } else if (title === "Data Display & Cards") {
-            descText = "Cards, tables, lists, progress indicators, chips, and data grids package content and actions to render structured information.";
+          } else if (title === "Data Display") {
+            descText = "Cards, tables, lists, progress indicators, chips, badges, and data grids package content and actions to render structured information.";
           } else if (title === "Navigation & Shell") {
-            descText = "Navigation bars, sidebars, drawers, tabs, and pagination systems provide layout wrappers and tools to move between app sections.";
+            descText = "Navigation bars, sidebars, drawers, tabs, breadcrumbs, and pagination systems provide tools to move between app sections.";
           } else if (title === "Feedback & Overlays") {
-            descText = "Alerts, modals, dialogs, banners, and spinners inform the user of status, notifications, errors, and background processes.";
+            descText = "Alerts, modals, dialogs, banners, toasts, and spinners inform the user of status, notifications, errors, and background processes.";
           } else if (title === "AI & Messaging") {
             descText = "Chat bubbles, inputs, and streaming prompt blocks display user conversations and AI assistant outputs.";
-          } else if (title === "Layout & Page Structure") {
-            descText = "Containers, sections, columns, and grid dividers provide page structuring wrappers for nesting nested widgets.";
+          } else if (title === "Layout & Structure") {
+            descText = "Containers, sections, columns, rows, spacers, and grid dividers provide page structuring wrappers for all nested content.";
+          } else if (title === "User Profiles") {
+            descText = "Profile cards, user dropdowns, and avatar groups display identity, account details, and user-related actions.";
+          } else if (title === "E-commerce") {
+            descText = "Product cards, pricing tiers, shopping carts, checkout summaries, and order histories power transactional commerce flows.";
+          } else if (title === "Mobile") {
+            descText = "Bottom sheets, mobile navigation bars, swipeable cards, and mobile-first gestures adapted for touch-first devices.";
+          } else if (title === "Content & Text") {
+            descText = "Rich text editors, code blocks, blockquotes, and inline embeds support structured authoring and content creation workflows.";
+          } else if (title === "Authentication") {
+            descText = "Login forms, sign-up flows, forgot password panels, and social OAuth buttons guard application entry points.";
+          } else if (title === "Dashboards & Analytics") {
+            descText = "KPI cards, chart widgets, analytics summaries, and data visualizations give users actionable insight into metrics and trends.";
           }
 
           const descTextNode = figma.createText();
@@ -2982,142 +3100,9 @@ figma.ui.onmessage = async (msg) => {
             }
           }
 
-          // Anatomy specs using original node
+          // Extract component specs using original node
           const specsNode = list[0];
           const specs = extractComponentSpecs(specsNode);
-
-          // Sub-header for Anatomy
-          const anatHeader = figma.createText();
-          anatHeader.fontName = boldFont;
-          anatHeader.fontSize = 13;
-          anatHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-          anatHeader.characters = "Anatomy Specifications & Redlines";
-          anatHeader.textAutoResize = "HEIGHT";
-          anatHeader.layoutAlign = "STRETCH";
-          docLayout.appendChild(anatHeader);
-
-          // Anatomy Diagram Card Container
-          const diagramCard = figma.createFrame();
-          diagramCard.name = "Anatomy Visualizer";
-          diagramCard.layoutMode = "VERTICAL";
-          diagramCard.primaryAxisSizingMode = "FIXED";
-          diagramCard.counterAxisSizingMode = "FIXED";
-          diagramCard.resize(1120, 280);
-          diagramCard.fills = [{ type: "SOLID", color: theme.cardBg }];
-          diagramCard.cornerRadius = 12;
-          diagramCard.strokes = [{ type: "SOLID", color: theme.cardBorder }];
-          diagramCard.strokeWeight = 1;
-          diagramCard.primaryAxisAlignItems = "CENTER";
-          diagramCard.counterAxisAlignItems = "CENTER";
-          diagramCard.clipsContent = false;
-          docLayout.appendChild(diagramCard);
-
-          // Inside the diagram card, draw redline specs
-          const specContainer = figma.createFrame();
-          specContainer.name = "Anatomy Spec Container";
-          specContainer.resize(specsNode.width, specsNode.height);
-          specContainer.fills = [];
-          specContainer.clipsContent = false;
-          diagramCard.appendChild(specContainer);
-
-          const clone = specsNode.clone();
-          clone.x = 0;
-          clone.y = 0;
-          specContainer.appendChild(clone);
-
-          // Draw spec overlays
-          const padColor = { r: 236/255, g: 72/255, b: 153/255 }; // Pink 500
-          
-          if (specs.paddingLeft > 0) {
-            const leftPad = figma.createFrame();
-            leftPad.name = "Padding Left";
-            leftPad.x = 0;
-            leftPad.y = 0;
-            leftPad.resize(specs.paddingLeft, specsNode.height);
-            leftPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            leftPad.strokes = [{ type: "SOLID", color: padColor }];
-            leftPad.strokeWeight = 0.5;
-            leftPad.dashPattern = [2, 2];
-            specContainer.appendChild(leftPad);
-
-            if (specs.paddingLeft >= 10) {
-              await drawTag(specContainer, specs.paddingLeft / 2, specsNode.height / 2, `${specs.paddingLeft}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.paddingRight > 0) {
-            const rightPad = figma.createFrame();
-            rightPad.name = "Padding Right";
-            rightPad.x = specsNode.width - specs.paddingRight;
-            rightPad.y = 0;
-            rightPad.resize(specs.paddingRight, specsNode.height);
-            rightPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            rightPad.strokes = [{ type: "SOLID", color: padColor }];
-            rightPad.strokeWeight = 0.5;
-            rightPad.dashPattern = [2, 2];
-            specContainer.appendChild(rightPad);
-
-            if (specs.paddingRight >= 10) {
-              await drawTag(specContainer, specsNode.width - specs.paddingRight / 2, specsNode.height / 2, `${specs.paddingRight}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.paddingTop > 0) {
-            const topPad = figma.createFrame();
-            topPad.name = "Padding Top";
-            topPad.x = specs.paddingLeft;
-            topPad.y = 0;
-            topPad.resize(Math.max(specsNode.width - specs.paddingLeft - specs.paddingRight, 1), specs.paddingTop);
-            topPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            topPad.strokes = [{ type: "SOLID", color: padColor }];
-            topPad.strokeWeight = 0.5;
-            topPad.dashPattern = [2, 2];
-            specContainer.appendChild(topPad);
-
-            if (specs.paddingTop >= 10) {
-              await drawTag(specContainer, specsNode.width / 2, specs.paddingTop / 2, `${specs.paddingTop}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.paddingBottom > 0) {
-            const bottomPad = figma.createFrame();
-            bottomPad.name = "Padding Bottom";
-            bottomPad.x = specs.paddingLeft;
-            bottomPad.y = specsNode.height - specs.paddingBottom;
-            bottomPad.resize(Math.max(specsNode.width - specs.paddingLeft - specs.paddingRight, 1), specs.paddingBottom);
-            bottomPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            bottomPad.strokes = [{ type: "SOLID", color: padColor }];
-            bottomPad.strokeWeight = 0.5;
-            bottomPad.dashPattern = [2, 2];
-            specContainer.appendChild(bottomPad);
-
-            if (specs.paddingBottom >= 10) {
-              await drawTag(specContainer, specsNode.width / 2, specsNode.height - specs.paddingBottom / 2, `${specs.paddingBottom}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.cornerRadius > 0) {
-            const radiusColor = { r: 168/255, g: 85/255, b: 247/255 }; // Purple 500
-            drawLine(specContainer, 0, 0, -12, -12, radiusColor);
-            const circle = figma.createEllipse();
-            circle.resize(4, 4);
-            circle.x = -2;
-            circle.y = -2;
-            circle.fills = [{ type: "SOLID", color: radiusColor }];
-            specContainer.appendChild(circle);
-            await drawTag(specContainer, -20, -20, `R: ${specs.cornerRadius}`, radiusColor, { r: 1, g: 1, b: 1 });
-          }
-
-          const specColor = { r: 239/255, g: 68/255, b: 68/255 }; // Red 500
-          drawLine(specContainer, 0, specsNode.height + 12, specsNode.width, specsNode.height + 12, specColor);
-          drawLine(specContainer, 0, specsNode.height + 8, 0, specsNode.height + 16, specColor);
-          drawLine(specContainer, specsNode.width, specsNode.height + 8, specsNode.width, specsNode.height + 16, specColor);
-          await drawTag(specContainer, specsNode.width / 2, specsNode.height + 12, `${specs.width}px`, specColor, { r: 1, g: 1, b: 1 });
-
-          drawLine(specContainer, specsNode.width + 12, 0, specsNode.width + 12, specsNode.height, specColor);
-          drawLine(specContainer, specsNode.width + 8, 0, specsNode.width + 16, 0, specColor);
-          drawLine(specContainer, specsNode.width + 8, specsNode.height, specsNode.width + 16, specsNode.height, specColor);
-          await drawTag(specContainer, specsNode.width + 12, specsNode.height / 2, `${specs.height}px`, specColor, { r: 1, g: 1, b: 1 });
 
           // Sub-header for Design Tokens & Swatches
           const tokensHeader = figma.createText();
@@ -3142,11 +3127,17 @@ figma.ui.onmessage = async (msg) => {
 
         await renderComponentCategory("Buttons & Actions", representativeButtons);
         await renderComponentCategory("Inputs & Forms", representativeInputs);
-        await renderComponentCategory("Data Display & Cards", representativeCards);
-        await renderComponentCategory("Navigation & Shell", representativeNavs);
+        await renderComponentCategory("Data Display", representativeDataDisplays);
+        await renderComponentCategory("Navigation & Shell", representativeNavigations);
         await renderComponentCategory("Feedback & Overlays", representativeFeedbacks);
         await renderComponentCategory("AI & Messaging", representativeAIs);
-        await renderComponentCategory("Layout & Page Structure", representativeLayouts);
+        await renderComponentCategory("Layout & Structure", representativeLayouts);
+        await renderComponentCategory("User Profiles", representativeUsers);
+        await renderComponentCategory("E-commerce", representativeEcommerces);
+        await renderComponentCategory("Mobile", representativeMobiles);
+        await renderComponentCategory("Content & Text", representativeContents);
+        await renderComponentCategory("Authentication", representativeAuthentications);
+        await renderComponentCategory("Dashboards & Analytics", representativeDashboards);
 
         pageWrapper.appendChild(compFrame);
 
@@ -3624,7 +3615,7 @@ figma.ui.onmessage = async (msg) => {
       lastScannedSpacing = sortedSpacing;
 
        // 9. Inform UI that scan is complete and send stats & tokens
-      const totalComponentsCount = representativeButtons.length + representativeInputs.length + representativeCards.length;
+      const totalComponentsCount = representativeButtons.length + representativeInputs.length + representativeDataDisplays.length + representativeNavigations.length + representativeFeedbacks.length + representativeAIs.length + representativeLayouts.length + representativeUsers.length + representativeEcommerces.length + representativeMobiles.length + representativeContents.length + representativeAuthentications.length + representativeDashboards.length;
       figma.ui.resize(340, 600); // Auto adjust plugin height directly from code.ts
       figma.ui.postMessage({
         type: "scan-complete",
