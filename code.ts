@@ -191,6 +191,32 @@ function findVisualNodes(node: SceneNode, results: SceneNode[]) {
   }
 }
 
+// Helper to extract all names associated with a node (for handling components, instances, and variants)
+async function getAssociatedNames(node: SceneNode): Promise<string[]> {
+  const names = [node.name];
+  
+  if (node.parent && node.parent.type === "COMPONENT_SET") {
+    names.push(node.parent.name);
+  }
+  
+  if (node.type === "INSTANCE") {
+    const instance = node as InstanceNode;
+    try {
+      const mainComp = await instance.getMainComponentAsync();
+      if (mainComp) {
+        names.push(mainComp.name);
+        if (mainComp.parent && mainComp.parent.type === "COMPONENT_SET") {
+          names.push(mainComp.parent.name);
+        }
+      }
+    } catch (e) {
+      // Ignore mainComponent load failures gracefully
+    }
+  }
+  
+  return names;
+}
+
 figma.ui.onmessage = async (msg) => {
   if (msg.type === "ready") {
     const pagesList = figma.root.children
@@ -346,6 +372,10 @@ figma.ui.onmessage = async (msg) => {
       const detectedButtons: SceneNode[] = [];
       const detectedInputs: SceneNode[] = [];
       const detectedCards: SceneNode[] = [];
+      const detectedNavs: SceneNode[] = [];
+      const detectedFeedbacks: SceneNode[] = [];
+      const detectedAIs: SceneNode[] = [];
+      const detectedLayouts: SceneNode[] = [];
       const representativeImages: SceneNode[] = [];
       const representativeIcons: SceneNode[] = [];
       const representativeLogos: SceneNode[] = [];
@@ -471,12 +501,28 @@ figma.ui.onmessage = async (msg) => {
           const w = node.width;
           const h = node.height;
 
+          const names = await getAssociatedNames(node);
+
+          const matchesButtonName = names.some(n => /(?:^|[-_\s/])(button|buttons|btn|fab|floating-action|link)(?:[-_\s/]|$)/i.test(n));
+          const matchesInputName = names.some(n => /(?:^|[-_\s/])(input|inputs|textarea|text-area|select|dropdown|combobox|checkbox|radio|switch|toggle|slider|picker|upload|stepper|otp|rating)(?:[-_\s/]|$)/i.test(n));
+          const matchesCardName = names.some(n => /(?:^|[-_\s/])(card|cards|table|grid|list|tree|badge|chip|tag|avatar|tooltip|popover|accordion|timeline|calendar|carousel|progress|skeleton|divider|chart|graph)(?:[-_\s/]|$)/i.test(n));
+          const matchesNavName = names.some(n => /(?:^|[-_\s/])(navbar|nav|sidebar|drawer|menu|breadcrumb|tab|pagination|bottom-nav)(?:[-_\s/]|$)/i.test(n));
+          const matchesFeedbackName = names.some(n => /(?:^|[-_\s/])(alert|banner|toast|snackbar|notification|modal|dialog|popup|spinner|loader)(?:[-_\s/]|$)/i.test(n));
+          const matchesAIName = names.some(n => /(?:^|[-_\s/])(chat|bubble|prompt|message|bot)(?:[-_\s/]|$)/i.test(n));
+          const matchesLayoutName = names.some(n => /(?:^|[-_\s/])(container|section|row|column|stack|spacer|header|footer|hero)(?:[-_\s/]|$)/i.test(n));
+
           let isButton = false;
           let isInput = false;
           let isCard = false;
+          let isNav = false;
+          let isFeedback = false;
+          let isAI = false;
+          let isLayout = false;
 
-          // Button Heuristics
-          if (w >= 60 && w <= 320 && h >= 24 && h <= 64) {
+          // 1. Buttons & Actions Heuristics
+          if (matchesButtonName) {
+            isButton = true;
+          } else if (w >= 60 && w <= 320 && h >= 24 && h <= 64) {
             const aspect = w / h;
             if (aspect >= 1.5 && aspect <= 7.0) {
               const textChildren: TextNode[] = [];
@@ -490,31 +536,121 @@ figma.ui.onmessage = async (msg) => {
             }
           }
 
-          // Input Heuristics
-          if (!isButton && w >= 120 && w <= 500 && h >= 32 && h <= 60) {
-            const aspect = w / h;
-            if (aspect >= 3.0 && aspect <= 10.0) {
-              const hasStroke = "strokes" in node && (node.strokes as any) !== figma.mixed && Array.isArray(node.strokes) && node.strokes.length > 0;
-              const hasFill = "fills" in node && (node.fills as any) !== figma.mixed && Array.isArray(node.fills) && node.fills.length > 0;
-              const textChildren: TextNode[] = [];
-              findTextNodes(node, textChildren);
-              if (textChildren.length > 0 && (hasStroke || hasFill)) {
-                const labelText = textChildren[0].characters.trim();
-                if (labelText.length > 0 && labelText.length < 40) {
+          // 2. Inputs & Forms Heuristics
+          if (!isButton) {
+            if (matchesInputName) {
+              isInput = true;
+            } else {
+              const isRegularInputGeom = w >= 120 && w <= 500 && h >= 32 && h <= 60 && (w / h >= 3.0 && w / h <= 10.0);
+              const isTextareaGeom = w >= 120 && w <= 500 && h >= 60 && h <= 200 && (w / h >= 1.0 && w / h <= 4.0);
+              const isCheckboxRadioGeom = w >= 14 && w <= 28 && h >= 14 && h <= 28 && (w / h >= 0.8 && w / h <= 1.2);
+              const isSwitchGeom = w >= 32 && w <= 60 && h >= 16 && h <= 36 && (w / h >= 1.5 && w / h <= 2.5);
+
+              if (isRegularInputGeom || isTextareaGeom) {
+                const hasStroke = "strokes" in node && (node.strokes as any) !== figma.mixed && Array.isArray(node.strokes) && node.strokes.length > 0;
+                const hasFill = "fills" in node && (node.fills as any) !== figma.mixed && Array.isArray(node.fills) && node.fills.length > 0;
+                const textChildren: TextNode[] = [];
+                findTextNodes(node, textChildren);
+                if (textChildren.length > 0 && (hasStroke || hasFill)) {
+                  const labelText = textChildren[0].characters.trim();
+                  if (labelText.length > 0 && labelText.length < 40) {
+                    isInput = true;
+                  }
+                }
+              } else if (isCheckboxRadioGeom || isSwitchGeom) {
+                const textChildren: TextNode[] = [];
+                findTextNodes(node, textChildren);
+                if (textChildren.length <= 1) {
                   isInput = true;
                 }
               }
             }
           }
 
-          // Card Heuristics
-          if (!isButton && !isInput && w >= 180 && w <= 500 && h >= 120 && h <= 600) {
-            const textChildren: TextNode[] = [];
-            findTextNodes(node, textChildren);
-            const visualChildren: SceneNode[] = [];
-            findVisualNodes(node, visualChildren);
-            if (textChildren.length >= 2 && visualChildren.length >= 1) {
+          // 3. Navigation & Shell Heuristics
+          if (!isButton && !isInput) {
+            if (matchesNavName) {
+              isNav = true;
+            } else {
+              const isNavbarGeom = w >= 300 && h >= 36 && h <= 80;
+              const isSidebarGeom = w >= 60 && w <= 300 && h >= 300;
+              if (isNavbarGeom || isSidebarGeom) {
+                isNav = true;
+              }
+            }
+          }
+
+          // 4. Feedback & Overlays Heuristics
+          if (!isButton && !isInput && !isNav) {
+            if (matchesFeedbackName) {
+              isFeedback = true;
+            } else {
+              const isModalGeom = w >= 280 && w <= 640 && h >= 140 && h <= 480;
+              const isAlertGeom = w >= 300 && h >= 40 && h <= 120;
+              if (isModalGeom || isAlertGeom) {
+                const textChildren: TextNode[] = [];
+                findTextNodes(node, textChildren);
+                if (textChildren.length >= 1) {
+                  isFeedback = true;
+                }
+              }
+            }
+          }
+
+          // 5. AI & Messaging Heuristics
+          if (!isButton && !isInput && !isNav && !isFeedback) {
+            if (matchesAIName) {
+              isAI = true;
+            } else {
+              const isChatBubbleGeom = w >= 80 && w <= 400 && h >= 32 && h <= 200;
+              if (isChatBubbleGeom) {
+                const textChildren: TextNode[] = [];
+                findTextNodes(node, textChildren);
+                if (textChildren.length >= 1 && textChildren.length <= 4) {
+                  isAI = true;
+                }
+              }
+            }
+          }
+
+          // 6. Layout & Page Structure Heuristics
+          if (!isButton && !isInput && !isNav && !isFeedback && !isAI) {
+            if (matchesLayoutName) {
+              isLayout = true;
+            } else {
+              const isDividerGeom = (w >= 300 && h <= 8) || (h >= 300 && w <= 8);
+              if (isDividerGeom) {
+                isLayout = true;
+              }
+            }
+          }
+
+          // 7. Data Display & Cards Heuristics
+          if (!isButton && !isInput && !isNav && !isFeedback && !isAI && !isLayout) {
+            if (matchesCardName) {
               isCard = true;
+            } else if (w >= 180 && w <= 500 && h >= 120 && h <= 600) {
+              const textChildren: TextNode[] = [];
+              findTextNodes(node, textChildren);
+              const visualChildren: SceneNode[] = [];
+              findVisualNodes(node, visualChildren);
+              if (textChildren.length >= 2 && visualChildren.length >= 1) {
+                isCard = true;
+              }
+            } else if ((node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE") && node.layoutMode === "VERTICAL" && node.children.length >= 3) {
+              // List layout heuristic
+              const heights = node.children.map(c => Math.round(c.height));
+              const firstH = heights[0];
+              const isConsistentHeight = heights.every(h => Math.abs(h - firstH) <= 2) && firstH >= 24 && firstH <= 80;
+              if (isConsistentHeight) {
+                isCard = true;
+              } else {
+                // Table layout heuristic
+                const firstChild = node.children[0];
+                if (firstChild.type === "FRAME" && firstChild.layoutMode === "HORIZONTAL" && firstChild.children.length >= 3) {
+                  isCard = true;
+                }
+              }
             }
           }
 
@@ -523,6 +659,14 @@ figma.ui.onmessage = async (msg) => {
             detectedButtons.push(node);
           } else if (isInput) {
             detectedInputs.push(node);
+          } else if (isNav) {
+            detectedNavs.push(node);
+          } else if (isFeedback) {
+            detectedFeedbacks.push(node);
+          } else if (isAI) {
+            detectedAIs.push(node);
+          } else if (isLayout) {
+            detectedLayouts.push(node);
           } else if (isCard) {
             detectedCards.push(node);
           }
@@ -640,6 +784,10 @@ figma.ui.onmessage = async (msg) => {
       const representativeButtons = getRepresentatives(detectedButtons, 4);
       const representativeInputs = getRepresentatives(detectedInputs, 4);
       const representativeCards = getRepresentatives(detectedCards, 4);
+      const representativeNavs = getRepresentatives(detectedNavs, 4);
+      const representativeFeedbacks = getRepresentatives(detectedFeedbacks, 4);
+      const representativeAIs = getRepresentatives(detectedAIs, 4);
+      const representativeLayouts = getRepresentatives(detectedLayouts, 4);
 
       // 5. Notify UI of layout builder phase
       figma.ui.postMessage({
@@ -705,7 +853,7 @@ figma.ui.onmessage = async (msg) => {
       const primaryBrand = brandColorsList.length > 0 ? brandColorsList[0][1] : undefined;
       const theme = deriveTheme(primaryBrand);
 
-      const allScannedComponents = [...detectedButtons, ...detectedInputs, ...detectedCards];
+      const allScannedComponents = [...detectedButtons, ...detectedInputs, ...detectedCards, ...detectedNavs, ...detectedFeedbacks, ...detectedAIs, ...detectedLayouts];
       const totalComponentsScanned = allScannedComponents.length;
       let totalAutoLayoutScanned = 0;
       const nonAutoLayoutNames: string[] = [];
@@ -772,6 +920,55 @@ figma.ui.onmessage = async (msg) => {
         qaRecommendations.push({
           type: "info",
           text: "Asset Audit: No brand logo nodes were identified. Tag logo frames with 'logo' in their layers."
+        });
+      }
+
+      if (representativeButtons.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Buttons & Actions Audit: No buttons or actions found. Tag components with 'button', 'btn', 'fab', or 'link' keywords."
+        });
+      }
+
+      if (representativeInputs.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Inputs & Forms Audit: No input fields found. Tag form elements with 'input', 'textarea', 'dropdown', 'checkbox', 'radio', 'switch', 'slider', or 'picker' keywords."
+        });
+      }
+
+      if (representativeCards.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Data Display & Cards Audit: No display cards, lists or tables found. Tag display structures with 'card', 'table', 'grid', 'list', 'badge', 'chip', 'avatar', or 'accordion' keywords."
+        });
+      }
+
+      if (representativeNavs.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Navigation Audit: No navigation components found. Tag navigation elements with 'navbar', 'nav', 'sidebar', 'drawer', 'menu', 'tabs', or 'pagination' keywords."
+        });
+      }
+
+      if (representativeFeedbacks.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Feedback Audit: No feedback panels found. Tag alerts or feedback overlays with 'alert', 'toast', 'notification', 'modal', or 'dialog' keywords."
+        });
+      }
+
+      if (representativeAIs.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "AI & Messaging Audit: No chat or messaging components found. Tag chat elements with 'chat', 'bubble', 'prompt', or 'message' keywords."
+        });
+      }
+
+      if (representativeLayouts.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Layout Audit: No structural layouts found. Tag structural components with 'container', 'section', 'row', 'column', 'stack', 'header', or 'footer' keywords."
         });
       }
 
@@ -942,7 +1139,9 @@ figma.ui.onmessage = async (msg) => {
         for (const btn of interactive) {
           if (btn.type === "FRAME" || btn.type === "COMPONENT" || btn.type === "INSTANCE") {
             const f = btn as FrameNode;
-            if (f.strokes && f.strokes.length > 0 && (f.strokeWeight as number) > 0) hasStroke++;
+            const sw = f.strokeWeight;
+            const hasValidStrokeWeight = typeof sw === "number" ? sw > 0 : (sw === figma.mixed);
+            if (f.strokes && f.strokes.length > 0 && hasValidStrokeWeight) hasStroke++;
           }
         }
         const ratio = interactive.length > 0 ? Math.round((hasStroke / interactive.length) * 100) : 0;
@@ -2176,7 +2375,7 @@ figma.ui.onmessage = async (msg) => {
         }
 
 
-      const hasComponents = representativeButtons.length > 0 || representativeInputs.length > 0 || representativeCards.length > 0;
+      const hasComponents = representativeButtons.length > 0 || representativeInputs.length > 0 || representativeCards.length > 0 || representativeNavs.length > 0 || representativeFeedbacks.length > 0 || representativeAIs.length > 0 || representativeLayouts.length > 0;
 
       // SECTION C2: RESPONSIVE GRID GUIDELINES (Slate 900)
       if (hasComponents) {
@@ -2336,8 +2535,8 @@ figma.ui.onmessage = async (msg) => {
           const card = figma.createFrame();
           card.name = "Design Tokens Card";
           card.layoutMode = "VERTICAL";
-          card.resize(480, 100);
-          card.counterAxisSizingMode = "FIXED";
+          card.resize(1120, 100);
+          card.layoutAlign = "STRETCH";
           card.primaryAxisSizingMode = "AUTO";
           card.fills = [{ type: "SOLID", color: theme.cardBg }];
           card.cornerRadius = 12;
@@ -2430,7 +2629,8 @@ figma.ui.onmessage = async (msg) => {
 
           // Divider
           const div1 = figma.createFrame();
-          div1.resize(448, 0.5);
+          div1.resize(1088, 0.5);
+          div1.layoutAlign = "STRETCH";
           div1.fills = [{ type: "SOLID", color: { r: 51/255, g: 65/255, b: 85/255 } }];
           card.appendChild(div1);
 
@@ -2497,7 +2697,7 @@ figma.ui.onmessage = async (msg) => {
         // --- SECTION RENDERING IMPLEMENTATIONS ---
 
         const compFrame = figma.createFrame();
-        compFrame.name = "Components Library (Raw)";
+        compFrame.name = "Component Library";
         compFrame.layoutMode = "VERTICAL";
         compFrame.resize(1200, 10);
         compFrame.counterAxisSizingMode = "FIXED";
@@ -2515,15 +2715,13 @@ figma.ui.onmessage = async (msg) => {
         compHeader.fontName = boldFont;
         compHeader.fontSize = 24;
         compHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-        compHeader.characters = "Detected Components as Raw";
+        compHeader.characters = "Component Library & Variants";
         compHeader.textAutoResize = "HEIGHT";
         compHeader.layoutAlign = "STRETCH";
         compFrame.appendChild(compHeader);
 
-
-
-        // Sub-helper function to create visual section for each component type
-        const renderComponentCategoryRaw = async (title: string, list: SceneNode[]) => {
+        // Sub-helper function to create visual section for each component type in a single column
+        const renderComponentCategory = async (title: string, list: SceneNode[]) => {
           if (list.length === 0) return;
 
           // Category Subtitle & Description
@@ -2578,12 +2776,20 @@ figma.ui.onmessage = async (msg) => {
           catHeader.appendChild(titleRow);
 
           let descText = "Interactive variants and production ready component specifications.";
-          if (title === "Buttons") {
+          if (title === "Buttons & Actions") {
             descText = "Buttons allow users to take actions and make choices with a single tap. Commonly used in forms, dialogs, and toolbars.";
-          } else if (title === "Input Fields") {
-            descText = "Text fields let users enter and edit text. They typically appear in forms and dialogs.";
-          } else if (title === "Cards") {
-            descText = "Cards contain content and actions about a single subject, serving as an entry point to more detailed information.";
+          } else if (title === "Inputs & Forms") {
+            descText = "Text fields, select dropdowns, toggles, checkboxes, and date pickers let users enter, edit, and select data in forms and dialogs.";
+          } else if (title === "Data Display & Cards") {
+            descText = "Cards, tables, lists, progress indicators, chips, and data grids package content and actions to render structured information.";
+          } else if (title === "Navigation & Shell") {
+            descText = "Navigation bars, sidebars, drawers, tabs, and pagination systems provide layout wrappers and tools to move between app sections.";
+          } else if (title === "Feedback & Overlays") {
+            descText = "Alerts, modals, dialogs, banners, and spinners inform the user of status, notifications, errors, and background processes.";
+          } else if (title === "AI & Messaging") {
+            descText = "Chat bubbles, inputs, and streaming prompt blocks display user conversations and AI assistant outputs.";
+          } else if (title === "Layout & Page Structure") {
+            descText = "Containers, sections, columns, and grid dividers provide page structuring wrappers for nesting nested widgets.";
           }
 
           const descTextNode = figma.createText();
@@ -2597,58 +2803,141 @@ figma.ui.onmessage = async (msg) => {
           
           compFrame.appendChild(catHeader);
 
-          // Horizontal layout splits into Left Column (A) and Right Column (B)
+          // Vertical single-column layout
           const docLayout = figma.createFrame();
-          docLayout.name = `${title} Specs Layout`;
-          docLayout.layoutMode = "HORIZONTAL";
+          docLayout.name = `${title} Content Layout`;
+          docLayout.layoutMode = "VERTICAL";
           docLayout.resize(1120, 10);
           docLayout.layoutAlign = "STRETCH";
-          docLayout.primaryAxisSizingMode = "FIXED";
-          docLayout.counterAxisSizingMode = "AUTO";
-          docLayout.itemSpacing = 40;
+          docLayout.primaryAxisSizingMode = "AUTO";
+          docLayout.counterAxisSizingMode = "FIXED";
+          docLayout.itemSpacing = 28;
           docLayout.fills = [];
           compFrame.appendChild(docLayout);
 
-          // Column A (Left) - Width: 600px
-          const colA = figma.createFrame();
-          colA.name = "Column A - Specs & Playground";
-          colA.layoutMode = "VERTICAL";
-          colA.resize(600, 10);
-          colA.counterAxisSizingMode = "FIXED";
-          colA.primaryAxisSizingMode = "AUTO";
-          colA.itemSpacing = 20;
-          colA.fills = [];
-          docLayout.appendChild(colA);
+          // Convert to Components and Combine as Variants
+          const componentsList: ComponentNode[] = [];
+          const usedVariantNames = new Set<string>();
 
-          // Sub-header for variations
+          for (const item of list) {
+            try {
+              const clone = item.clone();
+              let component: ComponentNode;
+              if (clone.type === "FRAME" || clone.type === "GROUP") {
+                clone.x = 0;
+                clone.y = 0;
+                if ("layoutAlign" in clone) {
+                  clone.layoutAlign = "INHERIT";
+                }
+                if ("layoutGrow" in clone) {
+                  clone.layoutGrow = 0;
+                }
+                docLayout.appendChild(clone);
+                component = figma.createComponentFromNode(clone as FrameNode | GroupNode);
+              } else {
+                const wrapper = figma.createFrame();
+                wrapper.name = clone.name;
+                wrapper.resize(clone.width, clone.height);
+                wrapper.fills = [];
+                wrapper.layoutMode = "VERTICAL";
+                wrapper.primaryAxisSizingMode = "FIXED";
+                wrapper.counterAxisSizingMode = "FIXED";
+                docLayout.appendChild(wrapper);
+                wrapper.appendChild(clone);
+                clone.x = 0;
+                clone.y = 0;
+                if ("layoutAlign" in clone) {
+                  clone.layoutAlign = "INHERIT";
+                }
+                if ("layoutGrow" in clone) {
+                  clone.layoutGrow = 0;
+                }
+                component = figma.createComponentFromNode(wrapper);
+              }
+
+              let variantName = item.name.replace(/[=,]/g, "").trim();
+              if (!variantName) variantName = "Variant";
+              let uniqueName = variantName;
+              let counter = 1;
+              while (usedVariantNames.has(uniqueName)) {
+                uniqueName = `${variantName} ${counter}`;
+                counter++;
+              }
+              usedVariantNames.add(uniqueName);
+              component.name = `Variant=${uniqueName}`;
+              componentsList.push(component);
+            } catch (e) {
+              console.log("Component creation error", e);
+            }
+          }
+
+          let componentSet: ComponentSetNode | undefined;
+          if (componentsList.length > 0) {
+            // Sub-header for Component Set
+            const compSetHeader = figma.createText();
+            compSetHeader.fontName = boldFont;
+            compSetHeader.fontSize = 13;
+            compSetHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+            compSetHeader.characters = "Component Variants (Figma Component Set)";
+            compSetHeader.textAutoResize = "HEIGHT";
+            compSetHeader.layoutAlign = "STRETCH";
+            docLayout.appendChild(compSetHeader);
+
+            try {
+              componentSet = figma.combineAsVariants(componentsList, docLayout);
+              componentSet.name = title;
+              componentSet.layoutMode = "HORIZONTAL";
+              componentSet.resize(1120, 10);
+              componentSet.layoutWrap = "WRAP";
+              componentSet.layoutAlign = "STRETCH";
+              componentSet.primaryAxisSizingMode = "FIXED";
+              componentSet.counterAxisSizingMode = "AUTO";
+              componentSet.itemSpacing = 24;
+              componentSet.counterAxisSpacing = 24;
+              componentSet.paddingLeft = 24;
+              componentSet.paddingRight = 24;
+              componentSet.paddingTop = 24;
+              componentSet.paddingBottom = 24;
+              componentSet.strokes = [{ type: "SOLID", color: theme.accentLight, opacity: 0.4 }];
+              componentSet.strokeWeight = 1;
+              componentSet.strokeAlign = "INSIDE";
+              componentSet.dashPattern = [4, 4];
+              componentSet.cornerRadius = 8;
+              componentSet.fills = [{ type: "SOLID", color: theme.cardBg, opacity: 0.3 }];
+            } catch (e) {
+              console.log("Combine as variants error", e);
+            }
+          }
+
+          // Sub-header for Interactive Playground
           const varHeader = figma.createText();
           varHeader.fontName = boldFont;
           varHeader.fontSize = 13;
           varHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-          varHeader.characters = "Variations & Playground";
+          varHeader.characters = "Interactive Instances Playground";
           varHeader.textAutoResize = "HEIGHT";
           varHeader.layoutAlign = "STRETCH";
-          colA.appendChild(varHeader);
+          docLayout.appendChild(varHeader);
 
           // Playground Row
-          const row = figma.createFrame();
-          row.name = `${title} Playground Row`;
-          row.layoutMode = "HORIZONTAL";
-          row.resize(600, 10);
-          row.layoutWrap = "WRAP";
-          row.layoutAlign = "STRETCH";
-          row.primaryAxisSizingMode = "FIXED";
-          row.counterAxisSizingMode = "AUTO";
-          row.itemSpacing = 16;
-          row.counterAxisSpacing = 16;
-          row.fills = [];
-          colA.appendChild(row);
+          const playgroundRow = figma.createFrame();
+          playgroundRow.name = `${title} Playground Row`;
+          playgroundRow.layoutMode = "HORIZONTAL";
+          playgroundRow.resize(1120, 10);
+          playgroundRow.layoutWrap = "WRAP";
+          playgroundRow.layoutAlign = "STRETCH";
+          playgroundRow.primaryAxisSizingMode = "FIXED";
+          playgroundRow.counterAxisSizingMode = "AUTO";
+          playgroundRow.itemSpacing = 16;
+          playgroundRow.counterAxisSpacing = 16;
+          playgroundRow.fills = [];
+          docLayout.appendChild(playgroundRow);
 
-          for (const item of list) {
+          for (const comp of componentsList) {
             try {
-              // Wrapper card for the cloned element
+              // Wrapper card for the instance
               const card = figma.createFrame();
-              card.name = `Playground - ${item.name}`;
+              card.name = `Playground - ${comp.name}`;
               card.fills = [{ type: "SOLID", color: theme.cardBg }];
               card.cornerRadius = 12;
               card.strokes = [{ type: "SOLID", color: theme.cardBorder }];
@@ -2656,8 +2945,8 @@ figma.ui.onmessage = async (msg) => {
               card.layoutMode = "VERTICAL";
               card.primaryAxisSizingMode = "AUTO";
               card.counterAxisSizingMode = "AUTO";
-              card.minWidth = 140;
-              card.minHeight = 100;
+              card.minWidth = 160;
+              card.minHeight = 110;
               card.paddingLeft = 16;
               card.paddingRight = 16;
               card.paddingTop = 16;
@@ -2670,43 +2959,30 @@ figma.ui.onmessage = async (msg) => {
               label.fontName = mediumFont;
               label.fontSize = 10;
               label.fills = [{ type: "SOLID", color: { r: 148/255, g: 163/255, b: 184/255 } }];
-              label.characters = item.name;
+              label.characters = comp.name.replace("Variant=", "");
               label.textAutoResize = "HEIGHT";
               label.layoutAlign = "STRETCH";
               card.appendChild(label);
 
-              // Clone and reset positions
-              const clone = item.clone();
-              if ("layoutAlign" in clone) {
-                clone.layoutAlign = "INHERIT";
+              // Create instance
+              const instance = comp.createInstance();
+              if ("layoutAlign" in instance) {
+                instance.layoutAlign = "INHERIT";
               }
-              if ("layoutGrow" in clone) {
-                clone.layoutGrow = 0;
+              if ("layoutGrow" in instance) {
+                instance.layoutGrow = 0;
               }
-              clone.x = 0;
-              clone.y = 0;
-              card.appendChild(clone);
+              instance.x = 0;
+              instance.y = 0;
+              card.appendChild(instance);
 
-              row.appendChild(card);
+              playgroundRow.appendChild(card);
             } catch (e) {
-              // Clone error
+              console.log("Playground instance creation error", e);
             }
           }
 
-
-
-          // Column B (Right) - Width: 480px
-          const colB = figma.createFrame();
-          colB.name = "Column B - Anatomy & Code";
-          colB.layoutMode = "VERTICAL";
-          colB.resize(480, 10);
-          colB.counterAxisSizingMode = "FIXED";
-          colB.primaryAxisSizingMode = "AUTO";
-          colB.itemSpacing = 20;
-          colB.fills = [];
-          docLayout.appendChild(colB);
-
-          // Specs extracted from first component in list
+          // Anatomy specs using original node
           const specsNode = list[0];
           const specs = extractComponentSpecs(specsNode);
 
@@ -2718,7 +2994,7 @@ figma.ui.onmessage = async (msg) => {
           anatHeader.characters = "Anatomy Specifications & Redlines";
           anatHeader.textAutoResize = "HEIGHT";
           anatHeader.layoutAlign = "STRETCH";
-          colB.appendChild(anatHeader);
+          docLayout.appendChild(anatHeader);
 
           // Anatomy Diagram Card Container
           const diagramCard = figma.createFrame();
@@ -2726,17 +3002,17 @@ figma.ui.onmessage = async (msg) => {
           diagramCard.layoutMode = "VERTICAL";
           diagramCard.primaryAxisSizingMode = "FIXED";
           diagramCard.counterAxisSizingMode = "FIXED";
-          diagramCard.resize(480, 260);
+          diagramCard.resize(1120, 280);
           diagramCard.fills = [{ type: "SOLID", color: theme.cardBg }];
           diagramCard.cornerRadius = 12;
           diagramCard.strokes = [{ type: "SOLID", color: theme.cardBorder }];
           diagramCard.strokeWeight = 1;
           diagramCard.primaryAxisAlignItems = "CENTER";
           diagramCard.counterAxisAlignItems = "CENTER";
-          diagramCard.clipsContent = false; // Prevent clipping components wider than visualizer
-          colB.appendChild(diagramCard);
+          diagramCard.clipsContent = false;
+          docLayout.appendChild(diagramCard);
 
-          // Inside the diagram card, let's draw redline specs
+          // Inside the diagram card, draw redline specs
           const specContainer = figma.createFrame();
           specContainer.name = "Anatomy Spec Container";
           specContainer.resize(specsNode.width, specsNode.height);
@@ -2843,7 +3119,7 @@ figma.ui.onmessage = async (msg) => {
           drawLine(specContainer, specsNode.width + 8, specsNode.height, specsNode.width + 16, specsNode.height, specColor);
           await drawTag(specContainer, specsNode.width + 12, specsNode.height / 2, `${specs.height}px`, specColor, { r: 1, g: 1, b: 1 });
 
-           // Sub-header for Design Tokens & Swatches
+          // Sub-header for Design Tokens & Swatches
           const tokensHeader = figma.createText();
           tokensHeader.fontName = boldFont;
           tokensHeader.fontSize = 13;
@@ -2851,12 +3127,10 @@ figma.ui.onmessage = async (msg) => {
           tokensHeader.characters = "Design System Styles & Tokens";
           tokensHeader.textAutoResize = "HEIGHT";
           tokensHeader.layoutAlign = "STRETCH";
-          colB.appendChild(tokensHeader);
+          docLayout.appendChild(tokensHeader);
 
           // Styles Swatches Card
-          await createStylesCard(colB, specs);
-
-
+          await createStylesCard(docLayout, specs);
 
           // Divider at bottom
           const catSpacer = figma.createFrame();
@@ -2866,143 +3140,17 @@ figma.ui.onmessage = async (msg) => {
           compFrame.appendChild(catSpacer);
         };
 
-        await renderComponentCategoryRaw("Buttons", representativeButtons);
-        await renderComponentCategoryRaw("Input Fields", representativeInputs);
-        await renderComponentCategoryRaw("Cards", representativeCards);
+        await renderComponentCategory("Buttons & Actions", representativeButtons);
+        await renderComponentCategory("Inputs & Forms", representativeInputs);
+        await renderComponentCategory("Data Display & Cards", representativeCards);
+        await renderComponentCategory("Navigation & Shell", representativeNavs);
+        await renderComponentCategory("Feedback & Overlays", representativeFeedbacks);
+        await renderComponentCategory("AI & Messaging", representativeAIs);
+        await renderComponentCategory("Layout & Page Structure", representativeLayouts);
 
         pageWrapper.appendChild(compFrame);
 
-        // SECTION D2: COMPONENTS AS VARIANTS (Slate 900)
-        const variantsFrame = figma.createFrame();
-        variantsFrame.name = "Components Library (Variants)";
-        variantsFrame.layoutMode = "VERTICAL";
-        variantsFrame.resize(1200, 10);
-        variantsFrame.counterAxisSizingMode = "FIXED";
-        variantsFrame.primaryAxisSizingMode = "AUTO";
-        variantsFrame.layoutAlign = "STRETCH";
-        variantsFrame.fills = [{ type: "SOLID", color: theme.sectionBg }];
-        variantsFrame.cornerRadius = 16;
-        variantsFrame.paddingLeft = 40;
-        variantsFrame.paddingRight = 40;
-        variantsFrame.paddingTop = 40;
-        variantsFrame.paddingBottom = 40;
-        variantsFrame.itemSpacing = 32;
 
-        const variantsHeader = figma.createText();
-        variantsHeader.fontName = boldFont;
-        variantsHeader.fontSize = 24;
-        variantsHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-        variantsHeader.characters = "Detected Components as Variants";
-        variantsHeader.textAutoResize = "HEIGHT";
-        variantsHeader.layoutAlign = "STRETCH";
-        variantsFrame.appendChild(variantsHeader);
-
-        const renderComponentSetCategory = async (title: string, list: SceneNode[]) => {
-          if (list.length === 0) return;
-
-          const subTitle = figma.createText();
-          subTitle.fontName = boldFont;
-          subTitle.fontSize = 16;
-          subTitle.fills = [{ type: "SOLID", color: theme.accentLight }];
-          subTitle.characters = `${title} Set`;
-          subTitle.textAutoResize = "HEIGHT";
-          subTitle.layoutAlign = "STRETCH";
-          variantsFrame.appendChild(subTitle);
-
-          const row = figma.createFrame();
-          row.name = `${title} Row`;
-          row.layoutMode = "HORIZONTAL";
-          row.resize(1120, 10);
-          row.layoutWrap = "WRAP";
-          row.layoutAlign = "STRETCH";
-          row.primaryAxisSizingMode = "FIXED";
-          row.counterAxisSizingMode = "AUTO";
-          row.itemSpacing = 24;
-          row.counterAxisSpacing = 24;
-          row.fills = [];
-          variantsFrame.appendChild(row);
-
-          const componentsList: ComponentNode[] = [];
-          const usedVariantNames = new Set<string>();
-
-          for (const item of list) {
-            try {
-              const clone = item.clone();
-
-              let component: ComponentNode;
-              if (clone.type === "FRAME" || clone.type === "GROUP") {
-                row.appendChild(clone);
-                if ("layoutAlign" in clone) {
-                  clone.layoutAlign = "INHERIT";
-                }
-                if ("layoutGrow" in clone) {
-                  clone.layoutGrow = 0;
-                }
-                clone.x = 0;
-                clone.y = 0;
-                component = figma.createComponentFromNode(clone as FrameNode | GroupNode);
-              } else {
-                const wrapper = figma.createFrame();
-                wrapper.name = clone.name;
-                wrapper.resize(clone.width, clone.height);
-                wrapper.fills = [];
-                wrapper.layoutMode = "VERTICAL";
-                wrapper.primaryAxisSizingMode = "FIXED";
-                wrapper.counterAxisSizingMode = "FIXED";
-                
-                row.appendChild(wrapper);
-                wrapper.appendChild(clone);
-                if ("layoutAlign" in clone) {
-                  clone.layoutAlign = "INHERIT";
-                }
-                if ("layoutGrow" in clone) {
-                  clone.layoutGrow = 0;
-                }
-                clone.x = 0;
-                clone.y = 0;
-                component = figma.createComponentFromNode(wrapper);
-              }
-
-              let variantName = item.name.replace(/[=,]/g, "").trim();
-              if (!variantName) variantName = "Variant";
-              let uniqueName = variantName;
-              let counter = 1;
-              while (usedVariantNames.has(uniqueName)) {
-                uniqueName = `${variantName} ${counter++}`;
-              }
-              usedVariantNames.add(uniqueName);
-              
-              component.name = `Variant=${uniqueName}`;
-              componentsList.push(component);
-            } catch (e) {}
-          }
-
-          if (componentsList.length > 0) {
-            try {
-              const componentSet = figma.combineAsVariants(componentsList, row);
-              componentSet.name = title;
-              
-              componentSet.layoutMode = "HORIZONTAL";
-              componentSet.resize(1120, 10);
-              componentSet.layoutWrap = "WRAP";
-              componentSet.layoutAlign = "STRETCH";
-              componentSet.primaryAxisSizingMode = "FIXED";
-              componentSet.counterAxisSizingMode = "AUTO";
-              componentSet.itemSpacing = 24;
-              componentSet.counterAxisSpacing = 24;
-              componentSet.paddingLeft = 24;
-              componentSet.paddingRight = 24;
-              componentSet.paddingTop = 24;
-              componentSet.paddingBottom = 24;
-            } catch (e) {}
-          }
-        };
-
-        await renderComponentSetCategory("Buttons", representativeButtons);
-        await renderComponentSetCategory("Input Fields", representativeInputs);
-        await renderComponentSetCategory("Cards", representativeCards);
-
-        pageWrapper.appendChild(variantsFrame);
       }
 
       // SECTION E: ASSETS (Slate 900)
