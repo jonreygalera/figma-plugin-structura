@@ -376,6 +376,7 @@ figma.ui.onmessage = async (msg) => {
       const detectedFeedbacks: SceneNode[] = [];
       const detectedAIs: SceneNode[] = [];
       const detectedLayouts: SceneNode[] = [];
+      const detectedSteppers: SceneNode[] = [];
       const representativeImages: SceneNode[] = [];
       const representativeIcons: SceneNode[] = [];
       const representativeLogos: SceneNode[] = [];
@@ -504,12 +505,13 @@ figma.ui.onmessage = async (msg) => {
           const names = await getAssociatedNames(node);
 
           const matchesButtonName = names.some(n => /(?:^|[-_\s/])(button|buttons|btn|fab|floating-action|link)(?:[-_\s/]|$)/i.test(n));
-          const matchesInputName = names.some(n => /(?:^|[-_\s/])(input|inputs|textarea|text-area|select|dropdown|combobox|checkbox|radio|switch|toggle|slider|picker|upload|stepper|otp|rating)(?:[-_\s/]|$)/i.test(n));
+          const matchesInputName = names.some(n => /(?:^|[-_\s/])(input|inputs|textarea|text-area|select|dropdown|combobox|checkbox|radio|switch|toggle|slider|picker|upload|otp|rating)(?:[-_\s/]|$)/i.test(n));
           const matchesCardName = names.some(n => /(?:^|[-_\s/])(card|cards|table|grid|list|tree|badge|chip|tag|avatar|tooltip|popover|accordion|timeline|calendar|carousel|progress|skeleton|divider|chart|graph)(?:[-_\s/]|$)/i.test(n));
           const matchesNavName = names.some(n => /(?:^|[-_\s/])(navbar|nav|sidebar|drawer|menu|breadcrumb|tab|pagination|bottom-nav)(?:[-_\s/]|$)/i.test(n));
           const matchesFeedbackName = names.some(n => /(?:^|[-_\s/])(alert|banner|toast|snackbar|notification|modal|dialog|popup|spinner|loader)(?:[-_\s/]|$)/i.test(n));
           const matchesAIName = names.some(n => /(?:^|[-_\s/])(chat|bubble|prompt|message|bot)(?:[-_\s/]|$)/i.test(n));
           const matchesLayoutName = names.some(n => /(?:^|[-_\s/])(container|section|row|column|stack|spacer|header|footer|hero)(?:[-_\s/]|$)/i.test(n));
+          const matchesStepperName = names.some(n => /(?:^|[-_\s/])(stepper|steppers|step-indicator|step-progress|step-tracker)(?:[-_\s/]|$)/i.test(n));
 
           let isButton = false;
           let isInput = false;
@@ -518,6 +520,7 @@ figma.ui.onmessage = async (msg) => {
           let isFeedback = false;
           let isAI = false;
           let isLayout = false;
+          let isStepper = false;
 
           // 1. Buttons & Actions Heuristics
           if (matchesButtonName) {
@@ -654,6 +657,13 @@ figma.ui.onmessage = async (msg) => {
             }
           }
 
+          // 8. Steppers Heuristics
+          if (!isButton && !isInput && !isNav && !isFeedback && !isAI && !isLayout && !isCard) {
+            if (matchesStepperName) {
+              isStepper = true;
+            }
+          }
+
           // Save matched nodes
           if (isButton) {
             detectedButtons.push(node);
@@ -669,6 +679,8 @@ figma.ui.onmessage = async (msg) => {
             detectedLayouts.push(node);
           } else if (isCard) {
             detectedCards.push(node);
+          } else if (isStepper) {
+            detectedSteppers.push(node);
           }
         }
 
@@ -788,6 +800,7 @@ figma.ui.onmessage = async (msg) => {
       const representativeFeedbacks = getRepresentatives(detectedFeedbacks, 4);
       const representativeAIs = getRepresentatives(detectedAIs, 4);
       const representativeLayouts = getRepresentatives(detectedLayouts, 4);
+      const representativeSteppers = getRepresentatives(detectedSteppers, 4);
 
       // 5. Notify UI of layout builder phase
       figma.ui.postMessage({
@@ -853,7 +866,7 @@ figma.ui.onmessage = async (msg) => {
       const primaryBrand = brandColorsList.length > 0 ? brandColorsList[0][1] : undefined;
       const theme = deriveTheme(primaryBrand);
 
-      const allScannedComponents = [...detectedButtons, ...detectedInputs, ...detectedCards, ...detectedNavs, ...detectedFeedbacks, ...detectedAIs, ...detectedLayouts];
+      const allScannedComponents = [...detectedButtons, ...detectedInputs, ...detectedCards, ...detectedNavs, ...detectedFeedbacks, ...detectedAIs, ...detectedLayouts, ...detectedSteppers];
       const totalComponentsScanned = allScannedComponents.length;
       let totalAutoLayoutScanned = 0;
       const nonAutoLayoutNames: string[] = [];
@@ -969,6 +982,13 @@ figma.ui.onmessage = async (msg) => {
         qaRecommendations.push({
           type: "info",
           text: "Layout Audit: No structural layouts found. Tag structural components with 'container', 'section', 'row', 'column', 'stack', 'header', or 'footer' keywords."
+        });
+      }
+
+      if (representativeSteppers.length === 0) {
+        qaRecommendations.push({
+          type: "info",
+          text: "Steppers Audit: No step indicators or progression steppers found. Tag progression layers with 'stepper', 'step-indicator', or 'step-progress' keywords."
         });
       }
 
@@ -2375,7 +2395,7 @@ figma.ui.onmessage = async (msg) => {
         }
 
 
-      const hasComponents = representativeButtons.length > 0 || representativeInputs.length > 0 || representativeCards.length > 0 || representativeNavs.length > 0 || representativeFeedbacks.length > 0 || representativeAIs.length > 0 || representativeLayouts.length > 0;
+      const hasComponents = representativeButtons.length > 0 || representativeInputs.length > 0 || representativeCards.length > 0 || representativeNavs.length > 0 || representativeFeedbacks.length > 0 || representativeAIs.length > 0 || representativeLayouts.length > 0 || representativeSteppers.length > 0;
 
       // SECTION C2: RESPONSIVE GRID GUIDELINES (Slate 900)
       if (hasComponents) {
@@ -2790,6 +2810,8 @@ figma.ui.onmessage = async (msg) => {
             descText = "Chat bubbles, inputs, and streaming prompt blocks display user conversations and AI assistant outputs.";
           } else if (title === "Layout & Page Structure") {
             descText = "Containers, sections, columns, and grid dividers provide page structuring wrappers for nesting nested widgets.";
+          } else if (title === "Steppers") {
+            descText = "Steppers convey progress through numbered steps or track multi-step workflows like checkout pages, wizards, or configuration setups.";
           }
 
           const descTextNode = figma.createText();
@@ -2982,142 +3004,9 @@ figma.ui.onmessage = async (msg) => {
             }
           }
 
-          // Anatomy specs using original node
+          // Extract component specs using original node
           const specsNode = list[0];
           const specs = extractComponentSpecs(specsNode);
-
-          // Sub-header for Anatomy
-          const anatHeader = figma.createText();
-          anatHeader.fontName = boldFont;
-          anatHeader.fontSize = 13;
-          anatHeader.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-          anatHeader.characters = "Anatomy Specifications & Redlines";
-          anatHeader.textAutoResize = "HEIGHT";
-          anatHeader.layoutAlign = "STRETCH";
-          docLayout.appendChild(anatHeader);
-
-          // Anatomy Diagram Card Container
-          const diagramCard = figma.createFrame();
-          diagramCard.name = "Anatomy Visualizer";
-          diagramCard.layoutMode = "VERTICAL";
-          diagramCard.primaryAxisSizingMode = "FIXED";
-          diagramCard.counterAxisSizingMode = "FIXED";
-          diagramCard.resize(1120, 280);
-          diagramCard.fills = [{ type: "SOLID", color: theme.cardBg }];
-          diagramCard.cornerRadius = 12;
-          diagramCard.strokes = [{ type: "SOLID", color: theme.cardBorder }];
-          diagramCard.strokeWeight = 1;
-          diagramCard.primaryAxisAlignItems = "CENTER";
-          diagramCard.counterAxisAlignItems = "CENTER";
-          diagramCard.clipsContent = false;
-          docLayout.appendChild(diagramCard);
-
-          // Inside the diagram card, draw redline specs
-          const specContainer = figma.createFrame();
-          specContainer.name = "Anatomy Spec Container";
-          specContainer.resize(specsNode.width, specsNode.height);
-          specContainer.fills = [];
-          specContainer.clipsContent = false;
-          diagramCard.appendChild(specContainer);
-
-          const clone = specsNode.clone();
-          clone.x = 0;
-          clone.y = 0;
-          specContainer.appendChild(clone);
-
-          // Draw spec overlays
-          const padColor = { r: 236/255, g: 72/255, b: 153/255 }; // Pink 500
-          
-          if (specs.paddingLeft > 0) {
-            const leftPad = figma.createFrame();
-            leftPad.name = "Padding Left";
-            leftPad.x = 0;
-            leftPad.y = 0;
-            leftPad.resize(specs.paddingLeft, specsNode.height);
-            leftPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            leftPad.strokes = [{ type: "SOLID", color: padColor }];
-            leftPad.strokeWeight = 0.5;
-            leftPad.dashPattern = [2, 2];
-            specContainer.appendChild(leftPad);
-
-            if (specs.paddingLeft >= 10) {
-              await drawTag(specContainer, specs.paddingLeft / 2, specsNode.height / 2, `${specs.paddingLeft}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.paddingRight > 0) {
-            const rightPad = figma.createFrame();
-            rightPad.name = "Padding Right";
-            rightPad.x = specsNode.width - specs.paddingRight;
-            rightPad.y = 0;
-            rightPad.resize(specs.paddingRight, specsNode.height);
-            rightPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            rightPad.strokes = [{ type: "SOLID", color: padColor }];
-            rightPad.strokeWeight = 0.5;
-            rightPad.dashPattern = [2, 2];
-            specContainer.appendChild(rightPad);
-
-            if (specs.paddingRight >= 10) {
-              await drawTag(specContainer, specsNode.width - specs.paddingRight / 2, specsNode.height / 2, `${specs.paddingRight}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.paddingTop > 0) {
-            const topPad = figma.createFrame();
-            topPad.name = "Padding Top";
-            topPad.x = specs.paddingLeft;
-            topPad.y = 0;
-            topPad.resize(Math.max(specsNode.width - specs.paddingLeft - specs.paddingRight, 1), specs.paddingTop);
-            topPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            topPad.strokes = [{ type: "SOLID", color: padColor }];
-            topPad.strokeWeight = 0.5;
-            topPad.dashPattern = [2, 2];
-            specContainer.appendChild(topPad);
-
-            if (specs.paddingTop >= 10) {
-              await drawTag(specContainer, specsNode.width / 2, specs.paddingTop / 2, `${specs.paddingTop}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.paddingBottom > 0) {
-            const bottomPad = figma.createFrame();
-            bottomPad.name = "Padding Bottom";
-            bottomPad.x = specs.paddingLeft;
-            bottomPad.y = specsNode.height - specs.paddingBottom;
-            bottomPad.resize(Math.max(specsNode.width - specs.paddingLeft - specs.paddingRight, 1), specs.paddingBottom);
-            bottomPad.fills = [{ type: "SOLID", color: padColor, opacity: 0.15 }];
-            bottomPad.strokes = [{ type: "SOLID", color: padColor }];
-            bottomPad.strokeWeight = 0.5;
-            bottomPad.dashPattern = [2, 2];
-            specContainer.appendChild(bottomPad);
-
-            if (specs.paddingBottom >= 10) {
-              await drawTag(specContainer, specsNode.width / 2, specsNode.height - specs.paddingBottom / 2, `${specs.paddingBottom}`, padColor, { r: 1, g: 1, b: 1 });
-            }
-          }
-
-          if (specs.cornerRadius > 0) {
-            const radiusColor = { r: 168/255, g: 85/255, b: 247/255 }; // Purple 500
-            drawLine(specContainer, 0, 0, -12, -12, radiusColor);
-            const circle = figma.createEllipse();
-            circle.resize(4, 4);
-            circle.x = -2;
-            circle.y = -2;
-            circle.fills = [{ type: "SOLID", color: radiusColor }];
-            specContainer.appendChild(circle);
-            await drawTag(specContainer, -20, -20, `R: ${specs.cornerRadius}`, radiusColor, { r: 1, g: 1, b: 1 });
-          }
-
-          const specColor = { r: 239/255, g: 68/255, b: 68/255 }; // Red 500
-          drawLine(specContainer, 0, specsNode.height + 12, specsNode.width, specsNode.height + 12, specColor);
-          drawLine(specContainer, 0, specsNode.height + 8, 0, specsNode.height + 16, specColor);
-          drawLine(specContainer, specsNode.width, specsNode.height + 8, specsNode.width, specsNode.height + 16, specColor);
-          await drawTag(specContainer, specsNode.width / 2, specsNode.height + 12, `${specs.width}px`, specColor, { r: 1, g: 1, b: 1 });
-
-          drawLine(specContainer, specsNode.width + 12, 0, specsNode.width + 12, specsNode.height, specColor);
-          drawLine(specContainer, specsNode.width + 8, 0, specsNode.width + 16, 0, specColor);
-          drawLine(specContainer, specsNode.width + 8, specsNode.height, specsNode.width + 16, specsNode.height, specColor);
-          await drawTag(specContainer, specsNode.width + 12, specsNode.height / 2, `${specs.height}px`, specColor, { r: 1, g: 1, b: 1 });
 
           // Sub-header for Design Tokens & Swatches
           const tokensHeader = figma.createText();
@@ -3147,6 +3036,7 @@ figma.ui.onmessage = async (msg) => {
         await renderComponentCategory("Feedback & Overlays", representativeFeedbacks);
         await renderComponentCategory("AI & Messaging", representativeAIs);
         await renderComponentCategory("Layout & Page Structure", representativeLayouts);
+        await renderComponentCategory("Steppers", representativeSteppers);
 
         pageWrapper.appendChild(compFrame);
 
