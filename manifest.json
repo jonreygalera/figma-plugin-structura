@@ -12,7 +12,11 @@
   "ui": "ui.html",
   "networkAccess": {
     "allowedDomains": [
-      "none"
-    ]
+      "https://generativelanguage.googleapis.com",
+      "https://api.openai.com",
+      "https://api.anthropic.com",
+      "*"
+    ],
+    "reasoning": "Required to allow AI optimization requests to Gemini, ChatGPT, Claude, and user-configured custom REST endpoints for design system analysis."
   }
 }

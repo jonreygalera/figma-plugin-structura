@@ -6,6 +6,31 @@
   <meta name="author" content="Shachi">
   <title>Structura - Design System Generator</title>
   <style>
+    :root {
+      --bg-base: #0f111a;
+      --bg-surface: rgba(255, 255, 255, 0.03);
+      --bg-surface-hover: rgba(255, 255, 255, 0.06);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.15);
+      
+      --accent-primary: #6366f1;
+      --accent-secondary: #a855f7;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      
+      --glass-blur: blur(16px);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-pill: 9999px;
+      
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.3);
+      --shadow-glow: 0 4px 20px var(--accent-glow);
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -14,168 +39,177 @@
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0b0f17;
-      color: #f3f4f6;
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 25%);
+      color: var(--text-main);
       width: 100%;
       height: 100%;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       user-select: none;
+      -webkit-font-smoothing: antialiased;
     }
 
     .container {
       display: flex;
       flex-direction: column;
       height: 100vh;
-      padding: 16px;
+      padding: 20px;
       overflow-y: auto;
       overflow-x: hidden;
       position: relative;
     }
 
-    .container::-webkit-scrollbar {
-      width: 6px;
-    }
-    .container::-webkit-scrollbar-track {
-      background: transparent;
-    }
+    .container::-webkit-scrollbar { width: 6px; }
+    .container::-webkit-scrollbar-track { background: transparent; }
     .container::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
+      background: var(--border-subtle);
+      border-radius: var(--radius-pill);
     }
-    .container::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
+    .container::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
-    /* Screen Styles */
+    /* Screen Transitions */
     .screen {
       display: none;
       flex-direction: column;
       justify-content: flex-start;
       align-items: center;
       flex-grow: 1;
-      animation: fadeIn 0.3s ease-out forwards;
       width: 100%;
+      animation: fadeInZoom 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    .screen.active {
-      display: flex;
-    }
+    .screen.active { display: flex; }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes fadeInZoom {
+      from { opacity: 0; transform: scale(0.97) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     /* Header */
     .header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
 
     .logo-container {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      margin-bottom: 6px;
+      gap: 6px;
+      margin-bottom: 8px;
     }
 
     .logo-icon {
-      width: 30px;
-      height: 30px;
-      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 15px;
+      font-size: 16px;
       color: #fff;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      box-shadow: var(--shadow-glow);
     }
 
     .logo-text {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 20px;
+      font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #c095e9 30%, #a855f7 100%);
+      background: linear-gradient(135deg, #e0caff 0%, #a855f7 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .subtitle {
-      font-size: 11px;
-      color: #9ca3af;
-      max-width: 240px;
-      line-height: 1.4;
+      font-size: 12px;
+      color: var(--text-muted);
+      max-width: 260px;
+      line-height: 1.5;
+      font-weight: 400;
     }
 
-    /* Card Area */
+    /* Hero / Info Cards (Glassmorphism) */
     .hero-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
       text-align: center;
       width: 100%;
-      margin-bottom: 16px;
-      backdrop-filter: blur(12px);
+      margin-bottom: 20px;
+      backdrop-filter: var(--glass-blur);
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.3s ease;
+    }
+    .hero-card:hover {
+      border-color: rgba(255,255,255,0.12);
     }
 
     .hero-text {
-      font-size: 12px;
+      font-size: 13px;
       color: #d1d5db;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
-    /* Form Fields for dropdown */
+    /* Forms */
     .form-group {
       width: 100%;
       margin-bottom: 20px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     .field-label {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      color: #9ca3af;
-      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.8px;
       text-align: left;
     }
 
-    .select-dropdown {
+    .select-dropdown, .input-field, .textarea-field {
       width: 100%;
-      padding: 10px 10px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
-      color: #f3f4f6;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
       font-family: inherit;
       font-size: 13px;
       outline: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .textarea-field {
+      resize: vertical;
+      min-height: 60px;
     }
 
-    .select-dropdown:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.15);
+    .select-dropdown { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px; }
+    .input-field, .textarea-field { cursor: text; }
+
+    .select-dropdown:hover, .input-field:hover, .textarea-field:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-strong);
     }
 
-    .select-dropdown:focus {
-      border-color: #6366f1;
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    .select-dropdown:focus, .input-field:focus, .textarea-field:focus {
+      border-color: var(--accent-primary);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     }
 
     .select-dropdown option {
-      background-color: #0b0f17;
-      color: #f3f4f6;
+      background-color: var(--bg-base);
+      color: var(--text-main);
     }
 
     /* Toggle Switch */
@@ -185,94 +219,89 @@
       justify-content: space-between;
       width: 100%;
       margin-bottom: 20px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      padding: 12px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
       transition: all 0.2s ease;
+      backdrop-filter: var(--glass-blur);
     }
 
     .toggle-group:hover {
-      border-color: rgba(99, 102, 241, 0.3);
-      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     .toggle-info {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
       text-align: left;
     }
 
     .toggle-label {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      color: #f3f4f6;
+      color: var(--text-main);
     }
 
     .toggle-desc {
-      font-size: 10px;
-      color: #9ca3af;
+      font-size: 11px;
+      color: var(--text-muted);
     }
 
     .switch {
       position: relative;
       display: inline-block;
-      width: 40px;
-      height: 22px;
+      width: 44px;
+      height: 24px;
       flex-shrink: 0;
     }
 
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
+    .switch input { opacity: 0; width: 0; height: 0; }
 
     .slider {
       position: absolute;
       cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background-color: rgba(255, 255, 255, 0.1);
-      transition: .3s;
-      border-radius: 22px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 24px;
+      border: 1px solid var(--border-subtle);
     }
 
     .slider:before {
       position: absolute;
       content: "";
-      height: 14px;
-      width: 14px;
-      left: 3px;
-      bottom: 3px;
+      height: 16px; width: 16px;
+      left: 3px; bottom: 3px;
       background-color: #d1d5db;
-      transition: .3s;
+      transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
       border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     input:checked + .slider {
-      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       border-color: transparent;
     }
 
     input:checked + .slider:before {
-      transform: translateX(18px);
+      transform: translateX(20px);
       background-color: #fff;
     }
 
     /* Buttons */
     .btn {
       width: 100%;
-      padding: 13px;
-      border-radius: 8px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
       border: none;
       font-family: inherit;
       font-size: 13px;
       font-weight: 600;
+      letter-spacing: 0.3px;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
@@ -282,14 +311,15 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
       color: #fff;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3), inset 0 1px 1px rgba(255,255,255,0.2);
     }
 
     .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5), inset 0 1px 1px rgba(255,255,255,0.2);
+      filter: brightness(1.05);
     }
 
     .btn-primary:active {
@@ -298,14 +328,62 @@
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e5e7eb;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-strong);
+      color: var(--text-main);
+      backdrop-filter: var(--glass-blur);
     }
 
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Tabs */
+    .tabs-header {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .tab-content {
+      display: none;
+      width: 100%;
+      animation: fadeInZoom 0.3s ease forwards;
+    }
+
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
     }
 
     /* Loader / Scanning State */
@@ -314,40 +392,51 @@
       width: 80px;
       height: 80px;
       margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .spinner {
+      position: absolute;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      border: 4px solid rgba(255, 255, 255, 0.03);
-      border-top-color: #6366f1;
-      border-right-color: #a855f7;
-      animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      border: 3px solid rgba(255, 255, 255, 0.05);
+      border-top-color: var(--accent-primary);
+      border-right-color: var(--accent-secondary);
+      animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+    
+    .spinner-inner {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 50%;
+      filter: blur(12px);
+      animation: pulse 2s infinite;
+      opacity: 0.5;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 
     .status-text {
-      font-size: 14px;
-      font-weight: 500;
-      color: #e5e7eb;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
       margin-bottom: 8px;
       text-align: center;
+      letter-spacing: 0.2px;
     }
 
     .status-sub {
-      font-size: 12px;
-      color: #9ca3af;
+      font-size: 13px;
+      color: var(--text-muted);
       text-align: center;
       animation: pulse 1.5s infinite ease-in-out;
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.6; }
+      0%, 100% { opacity: 0.5; }
       50% { opacity: 1; }
     }
 
@@ -361,121 +450,120 @@
     }
 
     .stat-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      padding: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      transition: border-color 0.2s ease;
+      gap: 6px;
+      transition: all 0.3s ease;
+      backdrop-filter: var(--glass-blur);
     }
 
     .stat-card:hover {
-      border-color: rgba(99, 102, 241, 0.3);
+      border-color: rgba(168, 85, 247, 0.4);
+      background: rgba(168, 85, 247, 0.05);
+      transform: translateY(-2px);
     }
 
     .stat-val {
-      font-size: 20px;
-      font-weight: 700;
+      font-size: 24px;
+      font-weight: 800;
       color: #fff;
+      letter-spacing: -0.5px;
     }
 
     .stat-lbl {
       font-size: 11px;
-      color: #9ca3af;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      font-weight: 600;
     }
 
     .success-badge {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.25);
       color: #34d399;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      margin-bottom: 16px;
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
     }
 
-    .success-badge svg {
-      width: 14px;
-      height: 14px;
-      fill: currentColor;
-    }
+    .success-badge svg { width: 16px; height: 16px; fill: currentColor; }
 
     .footer {
       text-align: center;
-      font-size: 9px;
-      color: #4b5563;
+      font-size: 10px;
+      color: #6b7280;
       width: 100%;
       margin-top: auto;
-      padding-top: 16px;
+      padding-top: 20px;
       font-weight: 600;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
       text-transform: uppercase;
-      opacity: 0.7;
     }
 
     .footer-link {
       cursor: pointer;
       transition: all 0.2s ease;
-      color: #4b5563;
-      padding: 4px 8px;
-      border-radius: 4px;
+      color: #9ca3af;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
       display: inline-block;
     }
 
     .footer-link:hover {
-      color: #a855f7;
-      background: rgba(168, 85, 247, 0.08);
+      color: var(--accent-secondary);
+      background: rgba(168, 85, 247, 0.1);
     }
 
     .tips-box {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      padding: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
       width: 100%;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       text-align: left;
-      backdrop-filter: blur(12px);
+      backdrop-filter: var(--glass-blur);
     }
 
     .tips-title {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      color: #a855f7;
+      color: var(--accent-secondary);
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .tips-list {
-      font-size: 10px;
-      color: #9ca3af;
-      padding-left: 14px;
-      line-height: 1.4;
+      font-size: 11.5px;
+      color: #d1d5db;
+      padding-left: 18px;
+      line-height: 1.5;
     }
 
-    .tips-list li {
-      margin-bottom: 6px;
-    }
-
+    .tips-list li { margin-bottom: 8px; }
     .tips-list code {
-      background: rgba(255, 255, 255, 0.06);
-      padding: 1px 4px;
-      border-radius: 3px;
-      color: #f3f4f6;
-      font-family: monospace;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 10.5px;
     }
 
-    /* Scroll container for screen complete */
+    /* Scroll container */
     .screen-scrollable {
       display: flex;
       flex-direction: column;
@@ -483,115 +571,114 @@
       width: 100%;
       flex-grow: 1;
       overflow-y: auto;
-      padding-right: 4px;
-      margin-bottom: 12px;
+      padding-right: 6px;
+      margin-bottom: 16px;
       max-height: calc(100vh - 160px);
     }
 
-    .screen-scrollable::-webkit-scrollbar {
-      width: 6px;
-    }
-    .screen-scrollable::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.01);
-      border-radius: 4px;
-    }
-    .screen-scrollable::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
-    }
-    .screen-scrollable::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
+    .screen-scrollable::-webkit-scrollbar { width: 6px; }
+    .screen-scrollable::-webkit-scrollbar-track { background: transparent; }
+    .screen-scrollable::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+    .screen-scrollable::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
     .screen-footer-actions {
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 0;
+      gap: 10px;
     }
 
     /* Actions and Register styles section */
     .action-card {
-      background: rgba(99, 102, 241, 0.04);
+      background: rgba(99, 102, 241, 0.03);
       border: 1px solid rgba(99, 102, 241, 0.15);
-      border-radius: 12px;
-      padding: 14px;
+      border-radius: var(--radius-md);
+      padding: 16px;
       width: 100%;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       text-align: left;
+      backdrop-filter: var(--glass-blur);
+      transition: all 0.3s ease;
+    }
+    
+    .action-card:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+      background: rgba(99, 102, 241, 0.05);
     }
 
     .action-title {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       color: #818cf8;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .action-desc {
-      font-size: 10px;
-      color: #9ca3af;
-      line-height: 1.4;
-      margin-bottom: 12px;
+      font-size: 11px;
+      color: #d1d5db;
+      line-height: 1.5;
+      margin-bottom: 16px;
     }
 
     .btn-action {
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: #fff;
-      font-size: 11px;
-      padding: 10px;
-      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+      font-size: 12px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
     }
 
     .btn-action:hover {
       background: linear-gradient(135deg, #5c54f5 0%, #8b4bfb 100%);
-      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.35);
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+      transform: translateY(-1px);
     }
 
     .btn-action.success {
       background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
 
     /* Code Export Card styles */
     .export-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
       width: 100%;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      backdrop-filter: var(--glass-blur);
     }
 
     .export-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 14px 8px 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .export-title {
       font-size: 11px;
       font-weight: 700;
-      color: #a855f7;
+      color: var(--accent-secondary);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .copy-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #d1d5db;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-strong);
+      color: var(--text-main);
       font-family: inherit;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 4px;
+      padding: 6px 12px;
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -599,79 +686,51 @@
     .copy-btn:hover {
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
     }
 
     .copy-btn.copied {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(16, 185, 129, 0.15);
       color: #34d399;
-      border-color: rgba(16, 185, 129, 0.25);
-    }
-
-    .tabs-header {
-      display: flex;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    }
-
-    .tab-btn {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: #9ca3af;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 8px 0;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center;
-      border-bottom: 2px solid transparent;
-    }
-
-    .tab-btn:hover {
-      color: #f3f4f6;
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    .tab-btn.active {
-      color: #a855f7;
-      border-bottom-color: #a855f7;
-      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(16, 185, 129, 0.3);
     }
 
     .tab-content {
-      display: none;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.15);
-      max-height: 180px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      max-height: 200px;
       overflow-y: auto;
       text-align: left;
     }
 
-    .tab-content.active {
-      display: block;
-    }
-
-    .tab-content pre {
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
+    .tab-content pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
     .tab-content code {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 10px;
+      font-family: 'Roboto Mono', Courier, monospace;
+      font-size: 11px;
       color: #a7f3d0;
-      line-height: 1.4;
+      line-height: 1.5;
     }
 
-    .tab-content::-webkit-scrollbar {
-      width: 4px;
+    .btn-text-action {
+      background: none;
+      border: none;
+      color: var(--accent-secondary);
+      font-size: 9px;
+      font-family: inherit;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.2s ease;
     }
-    .tab-content::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 2px;
+    .btn-text-action:hover {
+      color: #fff;
+    }
+    .btn-text-action.loading svg {
+      animation: spin 1s linear infinite;
     }
   </style>
 </head>
@@ -732,6 +791,7 @@
     <div id="screen-scanning" class="screen">
       <div class="spinner-container">
         <div class="spinner"></div>
+        <div class="spinner-inner"></div>
       </div>
       <p id="scanning-status" class="status-text">Scanning canvas...</p>
       <p id="scanning-step" class="status-sub">Please wait</p>
@@ -874,8 +934,92 @@
         Back
       </button>
     </div>
+    </div>
+
+    <!-- Screen 5: Settings -->
+    <div id="screen-settings" class="screen">
+      <div class="header" style="margin-bottom: 16px;">
+        <div class="logo-container">
+          <div class="logo-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">⚙️</div>
+          <div><span class="logo-text" style="background: linear-gradient(135deg, #34d399 30%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Settings</span></div>
+        </div>
+        <p class="subtitle">Configure AI integration for advanced component analysis</p>
+      </div>
+
+      <div class="screen-scrollable" style="width: 100%; padding-right: 4px; padding-bottom: 16px;">
+        <div class="toggle-group" style="margin-bottom: 24px;">
+          <div class="toggle-info">
+            <span class="toggle-label" style="font-size: 11px;">Enable AI Integration</span>
+            <span class="toggle-desc" style="font-size: 9px;">Enhance component analysis using AI</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="ai-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="ai-settings-container" style="display: none; width: 100%;">
+          <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+            <label for="ai-service" class="field-label">AI Service</label>
+            <select id="ai-service" class="select-dropdown">
+              <option value="gemini">Gemini</option>
+              <option value="claude">Claude</option>
+              <option value="chatgpt">ChatGPT</option>
+              <option value="custom">Custom Rest Endpoint / OWN AI API</option>
+            </select>
+          </div>
+
+          <div id="ai-standard-fields">
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="ai-api-key" class="field-label">API AI KEY</label>
+              <input type="password" id="ai-api-key" class="input-field" placeholder="Enter your API Key">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label for="ai-model" class="field-label" style="margin-bottom: 0;">AI Model</label>
+                <button id="btn-refresh-models" class="btn-text-action" title="Fetch latest models">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-10.45l4.25 4.88"/></svg>
+                  Refresh
+                </button>
+              </div>
+              <select id="ai-model" class="select-dropdown">
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="ai-custom-fields" style="display: none;">
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="ai-custom-endpoint" class="field-label">Custom Endpoint URL</label>
+              <input type="text" id="ai-custom-endpoint" class="input-field" placeholder="e.g. https://api.mycorp.com/v1/chat">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="ai-custom-headers" class="field-label">Headers (JSON)</label>
+              <textarea id="ai-custom-headers" class="input-field" style="height: 60px; resize: vertical; font-family: monospace; font-size: 11px;" placeholder='{\n  "Authorization": "Bearer YOUR_CUSTOM_KEY",\n  "Content-Type": "application/json"\n}'></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="ai-custom-body" class="field-label">Body Template (JSON)</label>
+              <textarea id="ai-custom-body" class="input-field" style="height: 90px; resize: vertical; font-family: monospace; font-size: 11px;" placeholder='{\n  "messages": [\n    {"role": "system", "content": "__SYSTEM_PROMPT__"},\n    {"role": "user", "content": "__CONTENT__"}\n  ]\n}'></textarea>
+              <div style="font-size: 10px; color: #9ca3af; margin-top: 6px; line-height: 1.4;">
+                Variables: Use <code style="color: #a855f7;">__SYSTEM_PROMPT__</code> and <code style="color: #a855f7;">__CONTENT__</code> in your template body for dynamic injection.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-settings-back" class="btn btn-secondary" style="padding: 10px; width: 100%;">
+        Save & Back
+      </button>
+    </div>
 
     <div id="plugin-footer" class="footer">
+      <span id="btn-settings-link" class="footer-link">Settings</span>
+      <span style="color: rgba(255,255,255,0.1); margin: 0 4px;">|</span>
       <span id="btn-about-link" class="footer-link">About</span>
     </div>
   </div>
@@ -885,7 +1029,75 @@
     const screenScanning = document.getElementById('screen-scanning');
     const screenComplete = document.getElementById('screen-complete');
     const screenAbout = document.getElementById('screen-about');
-    
+    const screenSettings = document.getElementById('screen-settings');
+
+    async function executeAIRequest(scannedData, settings) {
+      const systemPrompt = `You are an expert Design System Architect and Accessibility (WCAG 2.1 AA) specialist.
+Your task is to analyze the extracted design tokens and components of a user's Figma file.
+Produce a structured optimization report with the following clearly labeled sections:
+
+## 1. Color Contrast & Accessibility
+Suggest WCAG-compliant tweaks for any potential contrast issues or missing semantic tokens. Mention specific hex values where possible.
+
+## 2. Typography Hierarchy
+Recommend cleaner naming and scaling (e.g. replacing arbitrary pixel values with a proper rem/em scale). Suggest a consistent type ramp if one is missing.
+
+## 3. Component Structure
+Advise on atomic design structure and reusable variants. Flag any components that appear redundant or missing.
+
+## 4. Design System Compliance & QA Audit
+Score the overall design system quality from 0-100 based on consistency of spacing, color usage, component coverage, and naming conventions. Flag specific violations.
+
+## 5. WCAG 2.1 Accessibility Score
+Provide a WCAG 2.1 AA compliance score (0-100). Identify which specific criteria (e.g. 1.4.3 Contrast, 2.4.7 Focus Visible) are at risk based on the scanned data.
+
+## 6. Automated Rectification Guide
+Provide a numbered, actionable step-by-step list of fixes a designer can implement immediately in Figma to resolve the issues identified above. Be specific.
+
+## 7. How to Improve Detection
+Explain which naming conventions, layer structures, or Figma features (e.g. Auto Layout, Component Sets) the user should adopt so Structura can detect more tokens and components on the next scan.
+
+Respond in clean plain text (no markdown symbols like ** or ##) with each section clearly labeled. Keep total response under 600 words.`;
+
+      const userPrompt = `Here is the scanned data from the Figma design:\n\n${scannedData}\n\nPlease analyze and optimize.`;
+
+      if (settings.service === 'gemini') {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${settings.model}:generateContent?key=${settings.apiKey}`;
+        const body = { contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }] };
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || "Gemini request failed");
+        return data.candidates[0].content.parts[0].text;
+      } else if (settings.service === 'chatgpt') {
+        const url = "https://api.openai.com/v1/chat/completions";
+        const body = { model: settings.model, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] };
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${settings.apiKey}` }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || "ChatGPT request failed");
+        return data.choices[0].message.content;
+      } else if (settings.service === 'claude') {
+        const url = "https://api.anthropic.com/v1/messages";
+        const body = { model: settings.model, max_tokens: 1024, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] };
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": settings.apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerously-allow-browser": "true" }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || "Claude request failed");
+        return data.content[0].text;
+      } else {
+        const url = settings.customEndpoint;
+        if (!url) throw new Error("Custom endpoint URL is empty");
+        let headers = {};
+        try { headers = JSON.parse(settings.customHeaders || '{}'); } catch(e) { throw new Error("Invalid Custom Headers JSON"); }
+        let bodyRaw = settings.customBody || '';
+        const cleanSystem = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        const cleanUser = userPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        bodyRaw = bodyRaw.replace(/__SYSTEM_PROMPT__/g, cleanSystem).replace(/__CONTENT__/g, cleanUser);
+        const res = await fetch(url, { method: "POST", headers, body: bodyRaw });
+        const data = await res.json();
+        if (!res.ok) throw new Error("Custom API request failed");
+        return JSON.stringify(data, null, 2);
+      }
+    }
+
     const btnGenerate = document.getElementById('btn-generate');
     const btnRestart = document.getElementById('btn-restart');
     const btnNewScan = document.getElementById('btn-new-scan');
@@ -894,6 +1106,8 @@
 
     const btnAboutLink = document.getElementById('btn-about-link');
     const btnAboutBack = document.getElementById('btn-about-back');
+    const btnSettingsLink = document.getElementById('btn-settings-link');
+    const btnSettingsBack = document.getElementById('btn-settings-back');
     const btnCopyEmail = document.getElementById('btn-copy-email');
     const pluginFooter = document.getElementById('plugin-footer');
     
@@ -914,7 +1128,11 @@
     let previousScreen = screenReady;
 
     function showScreen(screen) {
-      if (screen !== screenAbout) {
+      // Always snapshot the real current screen before any transition,
+      // so Back always returns to wherever the user actually was.
+      if (screen === screenAbout || screen === screenSettings) {
+        previousScreen = currentScreen;
+      } else {
         previousScreen = currentScreen;
         currentScreen = screen;
       }
@@ -922,17 +1140,19 @@
       screenScanning.classList.remove('active');
       screenComplete.classList.remove('active');
       screenAbout.classList.remove('active');
+      screenSettings.classList.remove('active');
       screen.classList.add('active');
 
-      if (screen === screenAbout) {
+      if (screen === screenAbout || screen === screenSettings) {
         pluginFooter.style.display = 'none';
       } else {
         pluginFooter.style.display = 'block';
       }
 
-      let height = 420;
+      let height = 650;
       if (screen === screenScanning) height = 240;
       if (screen === screenAbout) height = 410;
+      if (screen === screenSettings) height = 550;
       if (screen === screenComplete) {
         const tipsContainer = document.getElementById('tips-container');
         height = (tipsContainer && tipsContainer.style.display === 'block') ? 580 : 450;
@@ -942,14 +1162,30 @@
 
     btnGenerate.onclick = () => {
       const targetPageId = pageSelect.value;
+      const aiEnabled = document.getElementById('ai-enabled')?.checked || false;
+      const aiService = document.getElementById('ai-service')?.value || "gemini";
+      const aiApiKey = document.getElementById('ai-api-key')?.value || "";
+      const aiModel = document.getElementById('ai-model')?.value || "gpt-4o";
+      const aiCustomEndpoint = document.getElementById('ai-custom-endpoint')?.value || "";
+      const aiCustomHeaders = document.getElementById('ai-custom-headers')?.value || "";
+      const aiCustomBody = document.getElementById('ai-custom-body')?.value || "";
+      
       showScreen(screenScanning);
-      parent.postMessage({ pluginMessage: { type: "generate", targetPageId } }, "*");
+      parent.postMessage({ pluginMessage: { type: "generate", targetPageId, aiSettings: { enabled: aiEnabled, service: aiService, apiKey: aiApiKey, model: aiModel, customEndpoint: aiCustomEndpoint, customHeaders: aiCustomHeaders, customBody: aiCustomBody } } }, "*");
     };
 
     btnRestart.onclick = () => {
       const targetPageId = pageSelect.value;
+      const aiEnabled = document.getElementById('ai-enabled')?.checked || false;
+      const aiService = document.getElementById('ai-service')?.value || "gemini";
+      const aiApiKey = document.getElementById('ai-api-key')?.value || "";
+      const aiModel = document.getElementById('ai-model')?.value || "gpt-4o";
+      const aiCustomEndpoint = document.getElementById('ai-custom-endpoint')?.value || "";
+      const aiCustomHeaders = document.getElementById('ai-custom-headers')?.value || "";
+      const aiCustomBody = document.getElementById('ai-custom-body')?.value || "";
+      
       showScreen(screenScanning);
-      parent.postMessage({ pluginMessage: { type: "generate", targetPageId } }, "*");
+      parent.postMessage({ pluginMessage: { type: "generate", targetPageId, aiSettings: { enabled: aiEnabled, service: aiService, apiKey: aiApiKey, model: aiModel, customEndpoint: aiCustomEndpoint, customHeaders: aiCustomHeaders, customBody: aiCustomBody } } }, "*");
     };
 
     btnNewScan.onclick = () => {
@@ -963,6 +1199,209 @@
     btnAboutBack.onclick = () => {
       showScreen(previousScreen);
     };
+
+    btnSettingsLink.onclick = () => {
+      showScreen(screenSettings);
+    };
+
+    btnSettingsBack.onclick = () => {
+      showScreen(previousScreen);
+    };
+
+    const aiEnabledToggle = document.getElementById('ai-enabled');
+    const aiSettingsContainer = document.getElementById('ai-settings-container');
+    const aiServiceSelect = document.getElementById('ai-service');
+    const aiStandardFields = document.getElementById('ai-standard-fields');
+    const aiCustomFields = document.getElementById('ai-custom-fields');
+    const aiModelSelect = document.getElementById('ai-model');
+    const aiApiKeyInput = document.getElementById('ai-api-key');
+    const aiCustomEndpointInput = document.getElementById('ai-custom-endpoint');
+    const aiCustomHeadersInput = document.getElementById('ai-custom-headers');
+    const aiCustomBodyInput = document.getElementById('ai-custom-body');
+
+    aiEnabledToggle.addEventListener('change', (e) => {
+      aiSettingsContainer.style.display = e.target.checked ? 'block' : 'none';
+      updateButtonLabels(e.target.checked);
+      saveSettings();
+    });
+
+    const serviceModels = {
+      gemini: [
+        { value: "gemini-1.5-pro", text: "Gemini 1.5 Pro" },
+        { value: "gemini-1.5-flash", text: "Gemini 1.5 Flash" }
+      ],
+      claude: [
+        { value: "claude-3-5-sonnet-20240620", text: "Claude 3.5 Sonnet" },
+        { value: "claude-3-opus-20240229", text: "Claude 3 Opus" },
+        { value: "claude-3-haiku-20240307", text: "Claude 3 Haiku" }
+      ],
+      chatgpt: [
+        { value: "gpt-4o", text: "GPT-4o" },
+        { value: "gpt-4-turbo", text: "GPT-4 Turbo" },
+        { value: "gpt-3.5-turbo", text: "GPT-3.5 Turbo" }
+      ]
+    };
+
+    function updateModels(service) {
+      if (service === 'custom') return;
+      aiModelSelect.innerHTML = '';
+      const models = serviceModels[service] || serviceModels['gemini'];
+      models.forEach(m => {
+        const option = document.createElement('option');
+        option.value = m.value;
+        option.textContent = m.text;
+        aiModelSelect.appendChild(option);
+      });
+    }
+
+    aiServiceSelect.addEventListener('change', (e) => {
+      const service = e.target.value;
+      if (service === 'custom') {
+        aiStandardFields.style.display = 'none';
+        aiCustomFields.style.display = 'block';
+      } else {
+        aiStandardFields.style.display = 'block';
+        aiCustomFields.style.display = 'none';
+        updateModels(service);
+      }
+      saveSettings();
+    });
+
+    aiApiKeyInput.addEventListener('change', saveSettings);
+    aiModelSelect.addEventListener('change', saveSettings);
+    aiCustomEndpointInput.addEventListener('change', saveSettings);
+    aiCustomHeadersInput.addEventListener('change', saveSettings);
+    aiCustomBodyInput.addEventListener('change', saveSettings);
+
+    function saveSettings() {
+      const settings = {
+        enabled: aiEnabledToggle.checked,
+        service: aiServiceSelect.value,
+        apiKey: aiApiKeyInput.value,
+        model: aiModelSelect.value,
+        customEndpoint: aiCustomEndpointInput.value,
+        customHeaders: aiCustomHeadersInput.value,
+        customBody: aiCustomBodyInput.value
+      };
+      // Use figma.clientStorage via the backend bridge (localStorage not available in Figma data: URLs)
+      parent.postMessage({ pluginMessage: { type: "save-settings", settings } }, "*");
+    }
+
+    function applySettings(settings) {
+      if (!settings) { updateModels(aiServiceSelect.value); return; }
+      if (settings.enabled !== undefined) {
+        aiEnabledToggle.checked = settings.enabled;
+        aiSettingsContainer.style.display = settings.enabled ? 'block' : 'none';
+      }
+      if (settings.service) {
+        aiServiceSelect.value = settings.service;
+        if (settings.service === 'custom') {
+          aiStandardFields.style.display = 'none';
+          aiCustomFields.style.display = 'block';
+        } else {
+          aiStandardFields.style.display = 'block';
+          aiCustomFields.style.display = 'none';
+          updateModels(settings.service);
+        }
+      } else {
+        updateModels(aiServiceSelect.value);
+      }
+      
+      // Migrate old saved models to fully-qualified API strings (for Claude only)
+      let targetModel = settings.model;
+      if (targetModel === "gemini-1.5-pro-latest") targetModel = "gemini-1.5-pro";
+      if (targetModel === "gemini-1.5-flash-latest") targetModel = "gemini-1.5-flash";
+      if (targetModel === "claude-3-5-sonnet") targetModel = "claude-3-5-sonnet-20240620";
+      if (targetModel === "claude-3-opus") targetModel = "claude-3-opus-20240229";
+      if (targetModel === "claude-3-haiku") targetModel = "claude-3-haiku-20240307";
+
+      if (targetModel) aiModelSelect.value = targetModel;
+      
+      if (settings.apiKey) aiApiKeyInput.value = settings.apiKey;
+      if (settings.customEndpoint) aiCustomEndpointInput.value = settings.customEndpoint;
+      if (settings.customHeaders) aiCustomHeadersInput.value = settings.customHeaders;
+      if (settings.customBody) aiCustomBodyInput.value = settings.customBody;
+      updateButtonLabels(settings.enabled);
+    }
+
+    const btnRefreshModels = document.getElementById('btn-refresh-models');
+    if (btnRefreshModels) {
+      btnRefreshModels.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const service = aiServiceSelect.value;
+        const apiKey = aiApiKeyInput.value;
+        if (service === 'custom') return;
+        if (!apiKey) {
+          alert('Please enter your API Key first to fetch live models.');
+          return;
+        }
+
+        btnRefreshModels.classList.add('loading');
+        btnRefreshModels.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-10.45l4.25 4.88"/></svg> Fetching...`;
+        
+        try {
+          let fetchedModels = [];
+          if (service === 'gemini') {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+            if (!res.ok) throw new Error("Failed to fetch Gemini models");
+            const data = await res.json();
+            fetchedModels = data.models
+              .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+              .map(m => ({ value: m.name.replace('models/', ''), text: m.displayName || m.name.replace('models/', '') }))
+              .reverse();
+          } else if (service === 'chatgpt') {
+            const res = await fetch("https://api.openai.com/v1/models", {
+              headers: { "Authorization": `Bearer ${apiKey}` }
+            });
+            if (!res.ok) throw new Error("Failed to fetch ChatGPT models");
+            const data = await res.json();
+            fetchedModels = data.data
+              .filter(m => m.id.includes("gpt"))
+              .map(m => ({ value: m.id, text: m.id }))
+              .sort((a, b) => b.value.localeCompare(a.value));
+          } else if (service === 'claude') {
+            const res = await fetch("https://api.anthropic.com/v1/models", {
+              headers: { 
+                "x-api-key": apiKey, 
+                "anthropic-version": "2023-06-01", 
+                "anthropic-dangerously-allow-browser": "true" 
+              }
+            });
+            if (!res.ok) throw new Error("Failed to fetch Claude models");
+            const data = await res.json();
+            fetchedModels = data.data
+              .filter(m => m.type === "model")
+              .map(m => ({ value: m.id, text: m.display_name || m.id }));
+          }
+
+          if (fetchedModels.length > 0) {
+            serviceModels[service] = fetchedModels;
+            updateModels(service);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Could not fetch models. Check your API key.');
+        } finally {
+          btnRefreshModels.classList.remove('loading');
+          btnRefreshModels.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-10.45l4.25 4.88"/></svg> Refresh`;
+        }
+      });
+    }
+
+    const BTN_LABELS = {
+      'btn-generate': 'Generate Design System',
+      'btn-restart':  'Scan & Rebuild Page',
+      'btn-new-scan': 'Scan New Page'
+    };
+
+    function updateButtonLabels(aiEnabled) {
+      Object.entries(BTN_LABELS).forEach(([id, base]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = aiEnabled ? base + ' with AI' : base;
+      });
+    }
+
+    // Settings are loaded via backend response on "ready" → "load-settings" message
 
     btnCopyEmail.onclick = () => {
       const emailText = "addychannn@gmail.com";
@@ -1008,7 +1447,6 @@
       if (!msg) return;
 
       if (msg.type === "init-pages") {
-        // Populate dropdown with pages
         pageSelect.innerHTML = '';
         msg.pages.forEach(p => {
           const option = document.createElement('option');
@@ -1016,9 +1454,21 @@
           option.textContent = p.name;
           pageSelect.appendChild(option);
         });
+      } else if (msg.type === "load-settings") {
+        applySettings(msg.settings);
       } else if (msg.type === "scan-progress") {
         scanningStatus.textContent = msg.status;
         scanningStep.textContent = msg.step;
+      } else if (msg.type === "perform-ai-optimization") {
+        scanningStatus.textContent = "AI Analysis...";
+        scanningStep.textContent = "Generating accessibility and structure optimizations";
+        executeAIRequest(msg.data, msg.aiSettings)
+          .then(result => {
+            parent.postMessage({ pluginMessage: { type: "ai-optimization-result", result } }, "*");
+          })
+          .catch(error => {
+            parent.postMessage({ pluginMessage: { type: "ai-optimization-error", error: String(error?.message || error) } }, "*");
+          });
       } else if (msg.type === "scan-complete") {
         statColors.textContent = msg.stats.colors;
         statFonts.textContent = msg.stats.fonts;
