@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 340, height: 420 });
+figma.showUI(__html__, { width: 340, height: 650 });
 
 // Global caches for scanned tokens
 let lastScannedColors: Array<{ hex: string; r: number; g: number; b: number; count: number; suggestion: string }> = [];
@@ -217,7 +217,71 @@ async function getAssociatedNames(node: SceneNode): Promise<string[]> {
   return names;
 }
 
+async function drawAIOptimizationsSection(page: FrameNode, aiResponseText: string, theme: ThemePalette): Promise<void> {
+  await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+  await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+
+  const aiFrame = figma.createFrame();
+  aiFrame.name = "✨ AI Optimizations & Suggestions";
+  aiFrame.layoutMode = "VERTICAL";
+  aiFrame.primaryAxisSizingMode = "AUTO";
+  aiFrame.counterAxisSizingMode = "FIXED";
+  aiFrame.resize(1200, 100);
+  aiFrame.fills = [{ type: "SOLID", color: theme.cardBg }];
+  aiFrame.strokes = [{ type: "SOLID", color: theme.accentColor }];
+  aiFrame.strokeWeight = 2;
+  aiFrame.cornerRadius = 16;
+  aiFrame.paddingLeft = 48;
+  aiFrame.paddingRight = 48;
+  aiFrame.paddingTop = 48;
+  aiFrame.paddingBottom = 48;
+  aiFrame.itemSpacing = 24;
+
+  const header = figma.createText();
+  header.fontName = { family: "Inter", style: "Bold" };
+  header.fontSize = 32;
+  header.fills = [{ type: "SOLID", color: theme.accentLight }];
+  header.characters = "✨ AI Optimization Report";
+  aiFrame.appendChild(header);
+
+  const content = figma.createText();
+  content.fontName = { family: "Inter", style: "Regular" };
+  content.fontSize = 16;
+  content.fills = [{ type: "SOLID", color: { r: 0.9, g: 0.9, b: 0.9 } }];
+  
+  // Ensure the string is never empty, as Figma throws an error for empty text node assignments
+  content.characters = (typeof aiResponseText === 'string' && aiResponseText.trim().length > 0) 
+    ? aiResponseText 
+    : "No optimization insights were returned by the AI service.";
+    
+  content.textAutoResize = "HEIGHT";
+  content.layoutAlign = "STRETCH";
+  aiFrame.appendChild(content);
+
+  page.appendChild(aiFrame);
+}
+
+let pendingAIResolve: ((val: string) => void) | null = null;
+let pendingAIReject: ((err: any) => void) | null = null;
+
 figma.ui.onmessage = async (msg) => {
+  if (msg.type === "ai-optimization-result") {
+    if (pendingAIResolve) pendingAIResolve(msg.result);
+    pendingAIResolve = null;
+    pendingAIReject = null;
+    return;
+  }
+  if (msg.type === "ai-optimization-error") {
+    if (pendingAIReject) pendingAIReject(new Error(msg.error));
+    pendingAIResolve = null;
+    pendingAIReject = null;
+    return;
+  }
+  if (msg.type === "save-settings") {
+    await figma.clientStorage.setAsync('structura-ai-settings', msg.settings);
+    return;
+  }
+
   if (msg.type === "ready") {
     const pagesList = figma.root.children
       .filter(p => {
@@ -231,6 +295,12 @@ figma.ui.onmessage = async (msg) => {
     figma.ui.postMessage({
       type: "init-pages",
       pages: pagesList
+    });
+    // Load and send saved AI settings to the UI
+    const savedSettings = await figma.clientStorage.getAsync('structura-ai-settings');
+    figma.ui.postMessage({
+      type: "load-settings",
+      settings: savedSettings || null
     });
     return;
   }
@@ -3588,6 +3658,45 @@ figma.ui.onmessage = async (msg) => {
           pageWrapper.appendChild(guideFrame);
         } catch (e) {
           // Create error
+        }
+      }
+
+      if (msg.aiSettings && msg.aiSettings.enabled) {
+        figma.ui.postMessage({
+          type: "scan-progress",
+          status: "AI Optimization",
+          step: "Requesting AI insights..."
+        });
+        
+        const totalComps = representativeButtons.length + representativeInputs.length + representativeDataDisplays.length + representativeNavigations.length + representativeFeedbacks.length + representativeAIs.length + representativeLayouts.length + representativeUsers.length + representativeEcommerces.length + representativeMobiles.length + representativeContents.length + representativeAuthentications.length + representativeDashboards.length;
+        
+        const scannedDataStr = JSON.stringify({
+          colors: sortedColors.map(c => c[0]),
+          typography: sortedTypo.map(t => t[0]),
+          componentsFound: totalComps,
+          autoLayoutRate: `${autoLayoutRate}%`,
+          spacingConsistency: `${spacingConsistency}%`
+        });
+
+        figma.ui.postMessage({
+          type: "perform-ai-optimization",
+          data: scannedDataStr,
+          aiSettings: msg.aiSettings
+        });
+
+        try {
+          const aiResponseText = await new Promise<string>((resolve, reject) => {
+            pendingAIResolve = resolve;
+            pendingAIReject = reject;
+            setTimeout(() => {
+              pendingAIResolve = null;
+              pendingAIReject = null;
+              reject(new Error("AI Request Timed Out (60s)"));
+            }, 60000);
+          });
+          await drawAIOptimizationsSection(pageWrapper, aiResponseText, theme);
+        } catch (e: any) {
+          figma.notify("AI Optimization failed: " + (e.message || e), { error: true });
         }
       }
 
